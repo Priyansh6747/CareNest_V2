@@ -105,3 +105,25 @@ class BabyProfile(BaseMongoModel):
     profile: BabyInfo
     feeding: FeedingData
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+#utils
+class OnboardingSteps(BaseModel):
+    maternal_profile: bool = False
+    baby_profile: bool = False
+    consent: bool = False
+
+class OnboardingStatus(BaseMongoModel):
+    id: Optional[PyObjectId] = Field(alias="_id", default=None)
+    user_id: PyObjectId = Field(...)
+    steps: OnboardingSteps
+    completed_at: Optional[datetime] = None
+
+class Consents(BaseModel):
+    data_usage: bool = False
+    medical_disclaimer: bool = False
+
+class UserConsent(BaseMongoModel):
+    id: Optional[PyObjectId] = Field(alias="_id", default=None)
+    user_id: PyObjectId = Field(...)
+    consents: Consents
+    accepted_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
