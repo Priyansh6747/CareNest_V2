@@ -127,3 +127,49 @@ class UserConsent(BaseMongoModel):
     user_id: PyObjectId = Field(...)
     consents: Consents
     accepted_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+# ==================== INPUT MODELS (Client-safe) ====================
+# These prevent clients from injecting _id, created_at, etc.
+
+class UserCreate(BaseModel):
+    """Client input for creating a User"""
+    phone: Optional[str] = Field(None, pattern=r"^\+?1?\d{9,15}$")
+    email: Optional[str] = None
+    role: UserRole = UserRole.mother
+
+class MaternalProfileCreate(BaseModel):
+    """Client input for creating a MaternalProfile"""
+    personal: PersonalData
+    pregnancy: PregnancyData
+    diet: DietData
+
+class BabyProfileCreate(BaseModel):
+    """Client input for creating a BabyProfile"""
+    profile: BabyInfo
+    feeding: FeedingData
+
+class UserConsentCreate(BaseModel):
+    """Client input for creating UserConsent"""
+    consents: Consents
+
+
+# ==================== ONBOARDING REQUEST/RESPONSE ====================
+
+class OnboardingInitRequest(BaseModel):
+    """Request body for POST /onboarding/init"""
+    user: UserCreate
+    maternal: MaternalProfileCreate
+    consent: UserConsentCreate
+    baby: Optional[BabyProfileCreate] = None
+
+class OnboardingInitResponse(BaseModel):
+    """Response from POST /onboarding/init"""
+    user_id: PyObjectId
+    maternal_id: PyObjectId
+    baby_id: Optional[PyObjectId] = None
+    onboarding_status_id: PyObjectId
+    consent_id: PyObjectId
+    steps: OnboardingSteps
+    completed: bool
+    next_action: str

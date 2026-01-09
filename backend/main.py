@@ -1,15 +1,17 @@
 import uvicorn
 from fastapi import FastAPI
 
+from routers.user import router as user_router
+
 app = FastAPI()
+
+# Include routers
+app.include_router(user_router)
 
 @app.get("/")
 def read_root():
     return {"message": "Hello, FastAPI!"}
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: str = None):
-    return {"item_id": item_id, "q": q}
 
 
 if __name__ == "__main__":

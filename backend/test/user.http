@@ -1,0 +1,169 @@
+### CareNest User Onboarding API Tests
+### Base URL: http://localhost:8000
+
+### ============================================================
+### 1. Initialize Onboarding (Full - with Baby)
+### ============================================================
+POST http://localhost:8000/user/onboarding/init
+Content-Type: application/json
+
+{
+  "user": {
+    "phone": "+919876543210",
+    "email": "test.mother@example.com",
+    "role": "mother"
+  },
+  "maternal": {
+    "personal": {
+      "age": 28,
+      "height_cm": 162.5,
+      "weight_kg": 58.0,
+      "language": "en"
+    },
+    "pregnancy": {
+      "stage": "postpartum",
+      "expected_delivery_date": "2025-12-15T00:00:00Z",
+      "gravida": 1,
+      "para": 1,
+      "known_conditions": [],
+      "risk_level": "low"
+    },
+    "diet": {
+      "type": "veg",
+      "allergies": ["peanuts"]
+    }
+  },
+  "consent": {
+    "consents": {
+      "data_usage": true,
+      "medical_disclaimer": true
+    }
+  },
+  "baby": {
+    "profile": {
+      "name": "Baby Arya",
+      "date_of_birth": "2025-12-10T10:30:00Z",
+      "gender": "female",
+      "birth_weight_kg": 3.2,
+      "delivery_type": "normal"
+    },
+    "feeding": {
+      "type": "breastfed"
+    }
+  }
+}
+
+### ============================================================
+### 2. Initialize Onboarding (Minimal - without Baby)
+### ============================================================
+POST http://localhost:8000/user/onboarding/init
+Content-Type: application/json
+
+{
+  "user": {
+    "phone": "+919876543211",
+    "email": "pregnant.mother@example.com",
+    "role": "mother"
+  },
+  "maternal": {
+    "personal": {
+      "age": 25,
+      "height_cm": 158.0,
+      "weight_kg": 55.0,
+      "language": "hi"
+    },
+    "pregnancy": {
+      "stage": "trimester_2",
+      "expected_delivery_date": "2026-05-20T00:00:00Z",
+      "gravida": 1,
+      "para": 0,
+      "known_conditions": ["gestational_diabetes"],
+      "risk_level": "medium"
+    },
+    "diet": {
+      "type": "mixed",
+      "allergies": []
+    }
+  },
+  "consent": {
+    "consents": {
+      "data_usage": true,
+      "medical_disclaimer": true
+    }
+  }
+}
+
+### ============================================================
+### 3. Initialize Onboarding (Without Consent - Incomplete)
+### ============================================================
+POST http://localhost:8000/user/onboarding/init
+Content-Type: application/json
+
+{
+  "user": {
+    "phone": "+919876543212",
+    "role": "mother"
+  },
+  "maternal": {
+    "personal": {
+      "age": 30,
+      "height_cm": 165.0,
+      "weight_kg": 60.0,
+      "language": "en"
+    },
+    "pregnancy": {
+      "stage": "trimester_3",
+      "expected_delivery_date": "2026-02-15T00:00:00Z",
+      "gravida": 2,
+      "para": 1,
+      "known_conditions": [],
+      "risk_level": "low"
+    },
+    "diet": {
+      "type": "non_veg",
+      "allergies": ["shellfish"]
+    }
+  },
+  "consent": {
+    "consents": {
+      "data_usage": false,
+      "medical_disclaimer": false
+    }
+  }
+}
+
+### ============================================================
+### 4. Get Onboarding Status
+### Replace {user_id} with actual user ID from init response
+### ============================================================
+@user_id = MbG3wwDSH1o5lqQYoFG1
+GET http://localhost:8000/user/onboarding/status/{{user_id}}
+
+### ============================================================
+### 5. Update Onboarding Step - Mark Baby Profile Complete
+### Replace {user_id} with actual user ID
+### ============================================================
+PATCH http://localhost:8000/user/onboarding/step/{{user_id}}?step=baby_profile&value=true
+
+### ============================================================
+### 6. Update Onboarding Step - Mark Consent Complete
+### Replace {user_id} with actual user ID
+### ============================================================
+PATCH http://localhost:8000/user/onboarding/step/{{user_id}}?step=consent&value=true
+
+### ============================================================
+### 7. Mark Onboarding Complete
+### Replace {user_id} with actual user ID
+### ============================================================
+POST http://localhost:8000/user/onboarding/complete/{{user_id}}
+
+### ============================================================
+### 8. Get Status - Non-existent User (404 Test)
+### ============================================================
+GET http://localhost:8000/user/onboarding/status/000000000000000000000000
+
+### ============================================================
+### 9. Update Invalid Step (400 Test)
+### Replace {user_id} with actual user ID
+### ============================================================
+PATCH http://localhost:8000/user/onboarding/step/{{user_id}}?step=invalid_step&value=true
