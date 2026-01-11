@@ -1,0 +1,9 @@
+streamlit==1.28.0
+spacy==3.6.1
+scispacy==0.5.3
+https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.3/en_core_sci_sm-0.5.3.tar.gz
+pdfplumber==0.10.3
+pymupdf==1.23.8
+pandas==2.1.0
+plotly==5.17.0
+python-dotenv==1.0.0
