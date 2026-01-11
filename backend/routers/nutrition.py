@@ -38,6 +38,11 @@ from Core.Nutrition.WaterLog import (
     count_water_logs,
 )
 
+from Core.Barcode.barcode import (
+    get_tracked_nutrients_simple,
+    get_comprehensive_nutrient_report,
+)
+
 
 router = APIRouter(prefix="/nutrition", tags=["Nutrition"])
 
@@ -398,5 +403,61 @@ async def get_water_log_count(user_id: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to count water logs: {str(e)}"
+        )
+
+
+# ============================================================================
+# Barcode Scanning Endpoints
+# ============================================================================
+
+@router.get(
+    "/barcode/scan/{barcode}",
+    summary="Scan barcode for nutrients",
+    description="Scan a product barcode and retrieve tracked nutritional information.",
+)
+async def scan_barcode_for_nutrients(barcode: str):
+    """Scan a barcode and return tracked nutrients."""
+    try:
+        result = get_tracked_nutrients_simple(barcode)
+        
+        if result is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Product not found for barcode: {barcode}"
+            )
+        
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to scan barcode: {str(e)}"
+        )
+
+
+@router.get(
+    "/barcode/report/{barcode}",
+    summary="Get comprehensive barcode nutrient report",
+    description="Get a comprehensive nutrient report including both per 100g and per serving data.",
+)
+async def get_barcode_nutrient_report(barcode: str):
+    """Get comprehensive nutrient report for a barcode."""
+    try:
+        result = get_comprehensive_nutrient_report(barcode)
+        
+        if result is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Product not found for barcode: {barcode}"
+            )
+        
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get nutrient report: {str(e)}"
         )
 
