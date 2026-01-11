@@ -39,8 +39,7 @@ from Core.Nutrition.WaterLog import (
 )
 
 from Core.Barcode.barcode import (
-    get_tracked_nutrients_simple,
-    get_comprehensive_nutrient_report,
+    get_nutrients
 )
 
 
@@ -444,7 +443,7 @@ async def scan_barcode_for_nutrients(barcode: str):
 async def get_barcode_nutrient_report(barcode: str):
     """Get comprehensive nutrient report for a barcode."""
     try:
-        result = get_comprehensive_nutrient_report(barcode)
+        result = get_nutrients(barcode)
         
         if result is None:
             raise HTTPException(

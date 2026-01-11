@@ -173,3 +173,83 @@ class OnboardingInitResponse(BaseModel):
     steps: OnboardingSteps
     completed: bool
     next_action: str
+
+
+# ==================== INSIGHT ENGINE MODELS ====================
+
+class NutrientStatus(BaseModel):
+    """Status for a single nutrient (current intake vs RDA)."""
+    name: str
+    current_intake: float
+    recommended: float
+    unit: str
+    gap: float  # positive = deficit, negative = surplus
+    percentage_met: float
+
+
+class NutrientForecast(BaseModel):
+    """Forecast for a single nutrient's future values."""
+    values: List[float]      # One value per forecast day
+    dates: List[str]         # ISO date strings
+    trend: str               # "increasing", "decreasing", "stable", "unknown"
+
+
+class StreakData(BaseModel):
+    """User's tracking streak information."""
+    meal_streak: int = 0
+    water_streak: int = 0
+    longest_meal_streak: int = 0
+    longest_water_streak: int = 0
+
+
+class WaterForecast(BaseModel):
+    """Forecast for water intake."""
+    values: List[float]
+    dates: List[str]
+    trend: str
+    predicted_avg_ml: float
+
+
+class WaterTrends(BaseModel):
+    """Comprehensive water intake trends and hydration status."""
+    current_intake_ml: float
+    weekly_average_ml: float
+    goal_ml: float
+    today_goal_percentage: float
+    weekly_goal_percentage: float
+    hydration_status: str      # "excellent", "good", "fair", "needs_improvement"
+    days_meeting_goal: int
+    water_consistency_score: float
+    forecast: WaterForecast
+    recommendations: List[str]
+
+
+class NutritionInsights(BaseModel):
+    """Complete nutrition insights response from InsightEngine."""
+    user_id: str
+    trimester: PregnancyStage
+    generated_at: datetime
+    
+    # Current status
+    current_nutrients: List[NutrientStatus]
+    today_intake: dict
+    
+    # Forecasts
+    nutrient_forecasts: dict  # Dict[str, NutrientForecast]
+    forecast_horizon_days: int
+    
+    # Recommendations
+    priority_nutrients: List[str]  # Top nutrients with biggest gaps
+    dietary_recommendations: List[str]
+    
+    # Trends and consistency
+    consistency_score: float  # 0-100 score for tracking consistency
+    streak_data: StreakData
+    
+    # Water trends (new feature)
+    water_trends: WaterTrends
+    
+    # Metadata
+    context_days_used: int
+    forecaster_type: str  # "ChronosForecaster" or "SimpleForecaster"
+    error: Optional[str] = None
