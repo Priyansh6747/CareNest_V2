@@ -1,0 +1,21 @@
+{
+  "book_name": "medical physiology",
+  "store_name": "store_7",
+  "pdf_source": "data\\medical_physiology.pdf",
+  "chunk_size": 1000,
+  "chunk_overlap": 200,
+  "chunks_in_store": 900,
+  "embedding_dimension": 384,
+  "storage_mb": 2.22,
+  "context_summary": "TEXTBOOK\nof Medical\nPhysiology TEXTBOOK\nof Medical\nPhysiology\nELEVENTH EDITION\nArthur C.  Guyton, M. D.",
+  "keywords": [
+    "a",
+    "his",
+    "he",
+    "physiology",
+    "medical",
+    "that",
+    "was",
+    "from"
+  ]
+}

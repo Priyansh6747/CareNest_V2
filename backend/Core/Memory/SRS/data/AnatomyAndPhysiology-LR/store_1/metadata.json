@@ -1,0 +1,21 @@
+{
+  "book_name": "AnatomyAndPhysiology-LR",
+  "store_name": "store_1",
+  "pdf_source": "data\\AnatomyAndPhysiology-LR.pdf",
+  "chunk_size": 1000,
+  "chunk_overlap": 200,
+  "chunks_in_store": 900,
+  "embedding_dimension": 384,
+  "storage_mb": 2.15,
+  "context_summary": "Anatomy & Physiology OpenStax College \nRice University \n6100 Main Street MS-375 \nHouston, Texas 77005 \n \n \nTo learn more about OpenStax College, visit http://openstaxcollege. org.  \nIndividual print copies and bulk orders can be purchased through our website.",
+  "keywords": [
+    "openstax",
+    "college",
+    "a",
+    "foundation",
+    "you",
+    "chapter",
+    "tissue",
+    "rice"
+  ]
+}

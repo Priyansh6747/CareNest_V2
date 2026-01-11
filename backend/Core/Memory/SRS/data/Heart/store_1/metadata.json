@@ -1,0 +1,21 @@
+{
+  "book_name": "Heart",
+  "store_name": "store_1",
+  "pdf_source": "data\\Heart.pdf",
+  "chunk_size": 1000,
+  "chunk_overlap": 200,
+  "chunks_in_store": 138,
+  "embedding_dimension": 384,
+  "storage_mb": 0.34,
+  "context_summary": "e1037\nCirculationCirculation.  2022;145:e1037\u2013e1052.  DOI: 10.",
+  "keywords": [
+    "children",
+    "severe",
+    "a",
+    "young",
+    "acute",
+    "adults",
+    "have",
+    "heart"
+  ]
+}

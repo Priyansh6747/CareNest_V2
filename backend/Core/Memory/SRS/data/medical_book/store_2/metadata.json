@@ -1,0 +1,21 @@
+{
+  "book_name": "medical book",
+  "store_name": "store_2",
+  "pdf_source": "data\\medical_book.pdf",
+  "chunk_size": 1000,
+  "chunk_overlap": 200,
+  "chunks_in_store": 900,
+  "embedding_dimension": 384,
+  "storage_mb": 2.19,
+  "context_summary": "h Edition \nArdhendu Sinha Ray \nAbhise Si a a. v \nhttps://t. me/MBS_MedicalBooksStore Essentials of  \nINTERNAL MEDICINE Essentials of  \nINTERNAL MEDICINE\nArdhendu Sinha Ray MD\nEx-Professor \nDepartment of Medicine\nKolkata Medical College\nRG Kar Medical College\nKolkata, West Bengal, India\nBurdwan Medical College\nBurdwan, West Bengal, India\nKalinga Institute of Medical Sciences \nBhubaneswar, Odisha, India\nAbhisekh Sinha Ray MD (NY)\nStaff Nephrologist\nDepartment of Nephrology and Hypertension\nGood Samaritan Medical Center \nNE, USA\nFormerly, Fellow\nKidney Institute, University of Kansas Medical Center\nKansas, USA\nNew Delhi | London | Panama\nThe Health Sciences Publisher\nFourth Edition Headquarters\nJaypee Brothers Medical Publishers (P) Ltd\n4838/24, Ansari Road, Daryaganj\nNew Delhi 110 002, India\nPhone: +91-11-43574357\nFax: +91-11-43574314\nEmail: jaypee@jaypeebrothers.",
+  "keywords": [
+    "a",
+    "medical",
+    "section",
+    "syndrome",
+    "approach",
+    "this",
+    "patient",
+    "lead"
+  ]
+}

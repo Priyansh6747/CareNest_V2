@@ -1,0 +1,21 @@
+{
+  "book_name": "anatomy+phys",
+  "store_name": "store_2",
+  "pdf_source": "data\\anatomy+phys.pdf",
+  "chunk_size": 1000,
+  "chunk_overlap": 200,
+  "chunks_in_store": 900,
+  "embedding_dimension": 384,
+  "storage_mb": 2.16,
+  "context_summary": "Anatomy & Physiology \n5FYUCPPL\u0001&RVJUZ\u0001&EJUJPO\n\"O\u00010QFO\u0001&EVDBUJPO\u00013FTPVSDF\n7PMVNF\u00012\u0001PG\u0001\u0014\u001b\u0001$IBQUFST\u000112\u0001\u000e\u000121\u0001PG\u0001\u0013\u0019\n5IJT\u0001NVMUJ\u000eQBSU\u00015FYUCPPL\u0001&RVJUZ\u0001FEJUJPO\u0001SFUBJOT\u0001UIF\u0001PSJHJOBM\nBDBEFNJD\u0001DPOUFOU\u0001BT\u0001QVCMJTIFE\u0001CZ\u00010QFOTUBY\u0001$PMMFHF\r\u0001BOE\nVOEFS\u0001UIF\u0001UFSNT\u0001PG\u0001UIFJS\u0001$SFBUJWF\u0001$PNNPOT\u0001MJDFOTF\u0001\t$$\u000e#:\n\u000f\n-JDFOTF\u001b\u0001$$\u000e#:\n*4#/\u001b\u0001\u0001978-1-304-84002-8\n'FBSMFTTMZ\u0001DPQZ\r\u0001QSJOU\r\u0001SFNJYUN OpenStax College \nRice University \n6100 Main Street MS-380 \nHouston, Texas 77005 \nTo learn more about OpenStax College, visit http://openstaxcollege. org.  \nIndividual print copies and bulk orders can be purchased through our website.",
+  "keywords": [
+    "openstax",
+    "college",
+    "a",
+    "this",
+    "you",
+    "chapter",
+    "tissue",
+    "at"
+  ]
+}

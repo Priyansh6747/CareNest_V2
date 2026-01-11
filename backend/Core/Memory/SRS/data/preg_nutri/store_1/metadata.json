@@ -1,0 +1,21 @@
+{
+  "book_name": "preg nutri",
+  "store_name": "store_1",
+  "pdf_source": "data\\preg_nutri.pdf",
+  "chunk_size": 1000,
+  "chunk_overlap": 200,
+  "chunks_in_store": 212,
+  "embedding_dimension": 384,
+  "storage_mb": 0.51,
+  "context_summary": "The importance of nutrition in pregnancy and lactation: lifelong \nconsequences\nNicole E.  Marshall, MD, Barbara Abrams, DrPH, RD, Linda A.  Barbour, MD, MSPH, Patrick \nCatalano, MD, Parul Christian, DrPH, Jacob E.",
+  "keywords": [
+    "a",
+    "nutrition",
+    "women",
+    "author",
+    "that",
+    "during",
+    "manuscript",
+    "health"
+  ]
+}

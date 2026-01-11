@@ -1,0 +1,21 @@
+{
+  "book_name": "nutrients",
+  "store_name": "store_1",
+  "pdf_source": "data\\nutrients.pdf",
+  "chunk_size": 1000,
+  "chunk_overlap": 200,
+  "chunks_in_store": 20,
+  "embedding_dimension": 384,
+  "storage_mb": 0.05,
+  "context_summary": "Citation: Qin, Y. ; Xie, L.  Nutrition\nand Supplements during Pregnancy:\nA Vital Component in Building the\nHealth and Well-Being of Both the\nMother and the Developing Baby.",
+  "keywords": [
+    "a",
+    "during",
+    "nutrients",
+    "pregnancy",
+    "maternal",
+    "that",
+    "as",
+    "fatty"
+  ]
+}

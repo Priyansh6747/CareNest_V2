@@ -1,0 +1,21 @@
+{
+  "book_name": "Vitamin-E",
+  "store_name": "store_1",
+  "pdf_source": "data\\Vitamin-E.pdf",
+  "chunk_size": 1000,
+  "chunk_overlap": 200,
+  "chunks_in_store": 89,
+  "embedding_dimension": 384,
+  "storage_mb": 0.22,
+  "context_summary": "nutrients\nReview\nThe Role of Vitamin E in Immunity\nGa Young Lee 1,2 and Sung Nim Han 1,2, *\n1 Department of Food and Nutrition, College of Human Ecology, Seoul National University,\nSeoul 08826, Korea; lgykiki90@snu. ac. kr\n2 Research Institute of Human Ecology, Seoul National University, Seoul 08826, Korea\n* Correspondence: snhan@snu.",
+  "keywords": [
+    "vitamin",
+    "e",
+    "proliferation",
+    "production",
+    "et",
+    "diet",
+    "have",
+    "activity"
+  ]
+}

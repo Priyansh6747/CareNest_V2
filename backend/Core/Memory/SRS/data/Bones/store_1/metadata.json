@@ -1,0 +1,21 @@
+{
+  "book_name": "Bones",
+  "store_name": "store_1",
+  "pdf_source": "data\\Bones.pdf",
+  "chunk_size": 1000,
+  "chunk_overlap": 200,
+  "chunks_in_store": 151,
+  "embedding_dimension": 384,
+  "storage_mb": 0.37,
+  "context_summary": "Long-term potentiation requires a rapid burst of dendritic \nmitochondrial fission during induction\nSai Sachin Divakaruni1,2,3, Adam M.  Van Dyke3, Ramesh Chandra4, Tara A.  LeGates3, \nMinerva Contreras3, Poorna A.",
+  "keywords": [
+    "fission",
+    "et",
+    "mitochondrial",
+    "author",
+    "manuscript",
+    "that",
+    "a",
+    "ltp"
+  ]
+}

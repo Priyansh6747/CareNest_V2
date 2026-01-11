@@ -1,0 +1,21 @@
+{
+  "book_name": "Current Essentials of Medicine",
+  "store_name": "store_1",
+  "pdf_source": "data\\Current Essentials of Medicine.pdf",
+  "chunk_size": 1000,
+  "chunk_overlap": 200,
+  "chunks_in_store": 900,
+  "embedding_dimension": 384,
+  "storage_mb": 2.12,
+  "context_summary": "a LANGE medical book\nCURRENT\nESSENTIALS\nof MEDICINE\nFourth Edition\nEdited by\nLawrence M.  Tierney, Jr. , MD\nProfessor of Medicine\nUniversity of California, San Francisco\nAssociate Chief of Medical Services\nVeterans Affairs Medical Center\nSan Francisco, California\nSanjay Saint, MD, MPH\nAssociate Chief of Medicine, Ann Arbor VA Medical Center\nDirector, VA/UM Patient Safety Enhancement Program\nProfessor of Internal Medicine, University of Michigan Medical School \nAnn Arbor, Michigan\nMary A.",
+  "keywords": [
+    "or",
+    "san",
+    "disorders",
+    "md",
+    "university",
+    "medical",
+    "this",
+    "any"
+  ]
+}

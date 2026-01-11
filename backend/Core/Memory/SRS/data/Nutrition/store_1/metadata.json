@@ -1,0 +1,21 @@
+{
+  "book_name": "Nutrition",
+  "store_name": "store_1",
+  "pdf_source": "data\\Nutrition.pdf",
+  "chunk_size": 1000,
+  "chunk_overlap": 200,
+  "chunks_in_store": 90,
+  "embedding_dimension": 384,
+  "storage_mb": 0.22,
+  "context_summary": "Human Nutrition: Review Article\nAnn Nutr Metab 2025;81(suppl 3):19\u201332\nNutrition during Pregnancy and \nBirth Outcomes\nNandita Perumala    Alison D.  Gernandb\naDepartment of Epidemiology and Biostatistics, University of South Carolina, Columbia, SC, USA; \nbDepartment of Nutritional Sciences, College of Health and Human Development, The Pennsylvania \nState University, University Park, PA, USA\nReceived: May 22, 2024\nAccepted: August 28, 2024\nPublished online: February 13, 2025\nCorrespondence to: \nNandita Perumal, nperumal@mailbox. sc.",
+  "keywords": [
+    "pregnancy",
+    "weight",
+    "a",
+    "birth",
+    "as",
+    "energy",
+    "women",
+    "during"
+  ]
+}

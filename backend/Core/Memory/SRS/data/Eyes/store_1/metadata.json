@@ -1,0 +1,21 @@
+{
+  "book_name": "Eyes",
+  "store_name": "store_1",
+  "pdf_source": "data\\Eyes.pdf",
+  "chunk_size": 1000,
+  "chunk_overlap": 200,
+  "chunks_in_store": 63,
+  "embedding_dimension": 384,
+  "storage_mb": 0.15,
+  "context_summary": "LEVELS AND TRENDS IN \nCHILD MALNUTRITION\nUNICEF / WHO / World Bank Group Joint Child Malnutrition Estimates\nKey \ufb01ndings of the 2020 edition\nThese new estimates supersede former analyses and results \npublished by UNICEF,  WHO and the World Bank Group. \nSTUNTING\n144 million\nStunting affected an estimated 21. 3 per cent or \n144.",
+  "keywords": [
+    "million",
+    "children",
+    "global",
+    "asia",
+    "or",
+    "africa",
+    "malnutrition",
+    "under"
+  ]
+}
