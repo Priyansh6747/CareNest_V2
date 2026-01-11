@@ -1,0 +1,182 @@
+### CareNest Nutrition API Tests
+### Base URL: http://localhost:8000
+
+### ============================================================
+### Variables - Update these with actual IDs from your database
+### ============================================================
+@base_url = http://localhost:8000
+@user_id = MbG3wwDSH1o5lqQYoFG1
+@meal_id = AHqJJiiUjHblg44Ei86F
+
+### ============================================================
+### 1. Create Meal - Full Example
+### ============================================================
+POST {{base_url}}/nutrition/meals/{{user_id}}
+Content-Type: application/json
+
+{
+  "name": "Chole Bhature",
+  "desc": "North Indian breakfast with chickpea curry and fried bread",
+  "amnt": 350,
+  "analysis": {
+    "protein": 18.5,
+    "fiber": 8.2,
+    "iron": 0.004,
+    "vitamin_d": 0.5,
+    "omega_3": 0.8,
+    "omega_3_epa": 0.0,
+    "omega_3_dha": 0.0
+  }
+}
+
+### ============================================================
+### 2. Create Meal - Minimal Example
+### ============================================================
+POST {{base_url}}/nutrition/meals/{{user_id}}
+Content-Type: application/json
+
+{
+  "name": "Grilled Salmon",
+  "desc": "Pan-seared salmon fillet",
+  "amnt": 200,
+  "analysis": {
+    "protein": 40.0,
+    "fiber": 0.0,
+    "iron": 0.002,
+    "vitamin_d": 15.0,
+    "omega_3": 3.5,
+    "omega_3_epa": 1.2,
+    "omega_3_dha": 1.8
+  }
+}
+
+### ============================================================
+### 3. Create Meal - High Fiber
+### ============================================================
+POST {{base_url}}/nutrition/meals/{{user_id}}
+Content-Type: application/json
+
+{
+  "name": "Mixed Vegetable Salad",
+  "desc": "Fresh garden salad with spinach, carrots, and beans",
+  "amnt": 250,
+  "analysis": {
+    "protein": 5.2,
+    "fiber": 12.5,
+    "iron": 0.003,
+    "vitamin_d": 0.0,
+    "omega_3": 0.2,
+    "omega_3_epa": 0.0,
+    "omega_3_dha": 0.0
+  }
+}
+
+### ============================================================
+### 4. Get All Meals for User (Default: 50, ordered by created_at desc)
+### ============================================================
+GET {{base_url}}/nutrition/meals/{{user_id}}
+
+### ============================================================
+### 5. Get All Meals with Pagination
+### ============================================================
+GET {{base_url}}/nutrition/meals/{{user_id}}?limit=10&order_by=created_at&descending=true
+
+### ============================================================
+### 6. Get Single Meal by ID
+### (Replace meal_id with actual ID from create response)
+### ============================================================
+GET {{base_url}}/nutrition/meals/{{user_id}}/{{meal_id}}
+
+### ============================================================
+### 7. Get Meals by Date Range
+### ============================================================
+GET {{base_url}}/nutrition/meals/{{user_id}}/range?start_date=2026-01-01T00:00:00Z&end_date=2026-01-31T23:59:59Z
+
+### ============================================================
+### 8. Update Meal - Partial Update (Name only)
+### ============================================================
+PATCH {{base_url}}/nutrition/meals/{{user_id}}/{{meal_id}}
+Content-Type: application/json
+
+{
+  "name": "Updated Chole Bhature Deluxe"
+}
+
+### ============================================================
+### 9. Update Meal - Update Amount and Analysis
+### ============================================================
+PATCH {{base_url}}/nutrition/meals/{{user_id}}/{{meal_id}}
+Content-Type: application/json
+
+{
+  "amnt": 400,
+  "analysis": {
+    "protein": 22.0,
+    "fiber": 10.0,
+    "iron": 0.005,
+    "vitamin_d": 0.8,
+    "omega_3": 1.0,
+    "omega_3_epa": 0.0,
+    "omega_3_dha": 0.0
+  }
+}
+
+### ============================================================
+### 10. Get Daily Nutrition Summary
+### ============================================================
+GET {{base_url}}/nutrition/summary/{{user_id}}/daily?date=2026-01-11T00:00:00Z
+
+### ============================================================
+### 11. Get Meal Count
+### ============================================================
+GET {{base_url}}/nutrition/stats/{{user_id}}/count
+
+### ============================================================
+### 12. Delete Single Meal
+### ============================================================
+DELETE {{base_url}}/nutrition/meals/{{user_id}}/{{meal_id}}
+
+### ============================================================
+### 13. Delete All Meals (Use with caution!)
+### ============================================================
+DELETE {{base_url}}/nutrition/meals/{{user_id}}
+
+### ============================================================
+### ERROR TESTS
+### ============================================================
+
+### 14. Get Non-existent Meal (404 Test)
+### ============================================================
+GET {{base_url}}/nutrition/meals/{{user_id}}/non_existent_meal_id
+
+### 15. Create Meal - Invalid Data (Missing required field)
+### ============================================================
+POST {{base_url}}/nutrition/meals/{{user_id}}
+Content-Type: application/json
+
+{
+  "name": "Invalid Meal"
+}
+
+### 16. Create Meal - Invalid Amount (Must be > 0)
+### ============================================================
+POST {{base_url}}/nutrition/meals/{{user_id}}
+Content-Type: application/json
+
+{
+  "name": "Zero Amount Meal",
+  "amnt": 0,
+  "analysis": {
+    "protein": 10.0,
+    "fiber": 5.0,
+    "iron": 0.001,
+    "vitamin_d": 0.0,
+    "omega_3": 0.0,
+    "omega_3_epa": 0.0,
+    "omega_3_dha": 0.0
+  }
+}
+
+### 17. Date Range - Invalid Range (start > end)
+### ============================================================
+GET {{base_url}}/nutrition/meals/{{user_id}}/range?start_date=2026-12-31T00:00:00Z&end_date=2026-01-01T00:00:00Z
