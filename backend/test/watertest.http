@@ -1,0 +1,194 @@
+### CareNest Water Log API Tests
+### Base URL: http://localhost:8000
+
+### ============================================================
+### Variables - Update these with actual IDs from your database
+### ============================================================
+@base_url = http://localhost:8000
+@user_id = MbG3wwDSH1o5lqQYoFG1
+@log_id = REPLACE_WITH_ACTUAL_LOG_ID
+
+### ============================================================
+### 1. Log Water Intake - Morning Glass
+### ============================================================
+POST {{base_url}}/nutrition/water/{{user_id}}
+Content-Type: application/json
+
+{
+  "amount_ml": 250,
+  "note": "Morning water after waking up"
+}
+
+### ============================================================
+### 2. Log Water Intake - With Meal
+### ============================================================
+POST {{base_url}}/nutrition/water/{{user_id}}
+Content-Type: application/json
+
+{
+  "amount_ml": 300,
+  "note": "With lunch"
+}
+
+### ============================================================
+### 3. Log Water Intake - Minimal (No Note)
+### ============================================================
+POST {{base_url}}/nutrition/water/{{user_id}}
+Content-Type: application/json
+
+{
+  "amount_ml": 500
+}
+
+### ============================================================
+### 4. Log Water Intake - Exercise Hydration
+### ============================================================
+POST {{base_url}}/nutrition/water/{{user_id}}
+Content-Type: application/json
+
+{
+  "amount_ml": 750,
+  "note": "Post workout hydration"
+}
+
+### ============================================================
+### 5. Log Water Intake - Small Sip
+### ============================================================
+POST {{base_url}}/nutrition/water/{{user_id}}
+Content-Type: application/json
+
+{
+  "amount_ml": 100,
+  "note": "Small sip - medicine"
+}
+
+### ============================================================
+### 6. Get All Water Logs for User (Default: 50, ordered by created_at desc)
+### ============================================================
+GET {{base_url}}/nutrition/water/{{user_id}}
+
+### ============================================================
+### 7. Get All Water Logs with Pagination
+### ============================================================
+GET {{base_url}}/nutrition/water/{{user_id}}?limit=10&order_by=created_at&descending=true
+
+### ============================================================
+### 8. Get Single Water Log by ID
+### (Replace log_id with actual ID from create response)
+### ============================================================
+GET {{base_url}}/nutrition/water/{{user_id}}/{{log_id}}
+
+### ============================================================
+### 9. Get Water Logs by Date Range
+### ============================================================
+GET {{base_url}}/nutrition/water/{{user_id}}/range?start_date=2026-01-01T00:00:00Z&end_date=2026-01-31T23:59:59Z
+
+### ============================================================
+### 10. Update Water Log - Update Amount Only
+### ============================================================
+PATCH {{base_url}}/nutrition/water/{{user_id}}/{{log_id}}
+Content-Type: application/json
+
+{
+  "amount_ml": 350
+}
+
+### ============================================================
+### 11. Update Water Log - Update Note Only
+### ============================================================
+PATCH {{base_url}}/nutrition/water/{{user_id}}/{{log_id}}
+Content-Type: application/json
+
+{
+  "note": "Updated - Morning glass with lemon"
+}
+
+### ============================================================
+### 12. Update Water Log - Update Both Fields
+### ============================================================
+PATCH {{base_url}}/nutrition/water/{{user_id}}/{{log_id}}
+Content-Type: application/json
+
+{
+  "amount_ml": 400,
+  "note": "Large glass with breakfast"
+}
+
+### ============================================================
+### 13. Get Daily Water Intake Summary (Default Goal: 2500ml)
+### ============================================================
+GET {{base_url}}/nutrition/water/summary/{{user_id}}/daily?date=2026-01-11T00:00:00Z
+
+### ============================================================
+### 14. Get Daily Water Summary with Custom Goal
+### ============================================================
+GET {{base_url}}/nutrition/water/summary/{{user_id}}/daily?date=2026-01-11T00:00:00Z&goal_ml=3000
+
+### ============================================================
+### 15. Get Water Log Count
+### ============================================================
+GET {{base_url}}/nutrition/water/stats/{{user_id}}/count
+
+### ============================================================
+### 16. Delete Single Water Log
+### ============================================================
+DELETE {{base_url}}/nutrition/water/{{user_id}}/{{log_id}}
+
+### ============================================================
+### 17. Delete All Water Logs (Use with caution!)
+### ============================================================
+DELETE {{base_url}}/nutrition/water/{{user_id}}
+
+### ============================================================
+### ERROR TESTS
+### ============================================================
+
+### 18. Get Non-existent Water Log (404 Test)
+### ============================================================
+GET {{base_url}}/nutrition/water/{{user_id}}/non_existent_log_id
+
+### 19. Create Water Log - Invalid Data (Missing required field)
+### ============================================================
+POST {{base_url}}/nutrition/water/{{user_id}}
+Content-Type: application/json
+
+{
+  "note": "Missing amount_ml field"
+}
+
+### 20. Create Water Log - Invalid Amount (Must be > 0)
+### ============================================================
+POST {{base_url}}/nutrition/water/{{user_id}}
+Content-Type: application/json
+
+{
+  "amount_ml": 0,
+  "note": "Zero amount - should fail"
+}
+
+### 21. Create Water Log - Negative Amount
+### ============================================================
+POST {{base_url}}/nutrition/water/{{user_id}}
+Content-Type: application/json
+
+{
+  "amount_ml": -100,
+  "note": "Negative amount - should fail"
+}
+
+### 22. Date Range - Invalid Range (start > end)
+### ============================================================
+GET {{base_url}}/nutrition/water/{{user_id}}/range?start_date=2026-12-31T00:00:00Z&end_date=2026-01-01T00:00:00Z
+
+### 23. Update Non-existent Log (404 Test)
+### ============================================================
+PATCH {{base_url}}/nutrition/water/{{user_id}}/non_existent_log_id
+Content-Type: application/json
+
+{
+  "amount_ml": 500
+}
+
+### 24. Delete Non-existent Log (404 Test)
+### ============================================================
+DELETE {{base_url}}/nutrition/water/{{user_id}}/non_existent_log_id
