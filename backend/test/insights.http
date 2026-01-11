@@ -1,0 +1,113 @@
+### Insights API Tests
+### Base URL: http://127.0.0.1:8000
+
+### Variables
+@baseUrl = http://127.0.0.1:8000
+@userId = MbG3wwDSH1o5lqQYoFG1
+
+
+# ============================================================================
+# Generate Insights (uses cache if <12hrs old)
+# ============================================================================
+
+### Generate insights for a user (first call or after cache expires)
+POST {{baseUrl}}/insights/{{userId}}
+Content-Type: application/json
+
+{
+    "trimester": "trimester_2",
+    "age": 28,
+    "height_cm": 165.0,
+    "weight_kg": 65.0,
+    "activity_factor": 1.4,
+    "forecast_days": 7,
+    "context_days": 30,
+    "force_regenerate": false
+}
+
+
+### Force regenerate insights (skip cache)
+POST {{baseUrl}}/insights/{{userId}}
+Content-Type: application/json
+
+{
+    "trimester": "trimester_2",
+    "age": 28,
+    "height_cm": 165.0,
+    "weight_kg": 65.0,
+    "force_regenerate": true
+}
+
+
+### Trimester 1 insights
+POST {{baseUrl}}/insights/{{userId}}
+Content-Type: application/json
+
+{
+    "trimester": "trimester_1",
+    "age": 25,
+    "height_cm": 160.0,
+    "weight_kg": 58.0
+}
+
+
+### Trimester 3 insights
+POST {{baseUrl}}/insights/{{userId}}
+Content-Type: application/json
+
+{
+    "trimester": "trimester_3",
+    "age": 30,
+    "height_cm": 168.0,
+    "weight_kg": 72.0,
+    "activity_factor": 1.2
+}
+
+
+### Postpartum insights
+POST {{baseUrl}}/insights/{{userId}}
+Content-Type: application/json
+
+{
+    "trimester": "postpartum",
+    "age": 28,
+    "height_cm": 165.0,
+    "weight_kg": 60.0
+}
+
+
+# ============================================================================
+# Get Cached Insights
+# ============================================================================
+
+### Get latest cached insights (without regenerating)
+GET {{baseUrl}}/insights/{{userId}}/latest
+
+
+### Get insights history (all stored documents)
+GET {{baseUrl}}/insights/{{userId}}/history?limit=10
+
+
+# ============================================================================
+# Delete Insights
+# ============================================================================
+
+### Delete all cached insights for a user
+DELETE {{baseUrl}}/insights/{{userId}}
+
+
+# ============================================================================
+# Error Cases
+# ============================================================================
+
+### Get insights for non-existent user (should return 404 from /latest)
+GET {{baseUrl}}/insights/nonexistent_user_12345/latest
+
+
+### Missing required fields (should return 422)
+POST {{baseUrl}}/insights/{{userId}}
+Content-Type: application/json
+
+{
+    "trimester": "trimester_2"
+}

@@ -3,12 +3,14 @@ from fastapi import FastAPI
 
 from routers.user import router as user_router
 from routers.nutrition import router as nutrition_router
+from routers.insights import router as insights_router
 
 app = FastAPI()
 
 # Include routers
 app.include_router(user_router)
 app.include_router(nutrition_router)
+app.include_router(insights_router)
 
 @app.get("/")
 def read_root():
