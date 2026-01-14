@@ -1,0 +1,199 @@
+### Memory Module API Tests
+### Use these with VS Code REST Client extension
+
+@baseUrl = http://127.0.0.1:8000
+@userId = MbG3wwDSH1o5lqQYoFG1
+
+# =============================================================================
+# SRS - Smart Retrieval System
+# =============================================================================
+
+### List all vector stores
+GET {{baseUrl}}/memory/stores
+
+###
+
+### Get loaded stores (in memory)
+GET {{baseUrl}}/memory/stores/loaded
+
+###
+
+### Explain query routing
+GET {{baseUrl}}/memory/route?query=iron deficiency during pregnancy
+
+###
+
+### Query knowledge base
+POST {{baseUrl}}/memory/query?user_id={{userId}}
+Content-Type: application/json
+
+{
+  "query": "What foods are high in iron during pregnancy?",
+  "top_k_stores": 2,
+  "top_k_chunks": 5,
+  "include_context": true
+}
+
+###
+
+### Query about heart health
+POST {{baseUrl}}/memory/query?user_id={{userId}}
+Content-Type: application/json
+
+{
+  "query": "What are symptoms of heart palpitations?",
+  "top_k_stores": 2,
+  "top_k_chunks": 5,
+  "include_context": false
+}
+
+###
+
+### Query about vitamins
+POST {{baseUrl}}/memory/query?user_id={{userId}}
+Content-Type: application/json
+
+{
+  "query": "Vitamin D requirements during pregnancy",
+  "top_k_stores": 3,
+  "top_k_chunks": 8
+}
+
+
+# =============================================================================
+# Symptom Tracking - Medic Stones
+# =============================================================================
+
+### Log a symptom
+POST {{baseUrl}}/memory/symptoms?user_id={{userId}}
+Content-Type: application/json
+
+{
+  "symptom_name": "headache",
+  "severity": 3,
+  "description": "Mild headache in the afternoon",
+  "notes": "After skipping lunch"
+}
+
+###
+
+### Log another symptom
+POST {{baseUrl}}/memory/symptoms?user_id={{userId}}
+Content-Type: application/json
+
+{
+  "symptom_name": "fatigue",
+  "severity": 4,
+  "description": "Extreme tiredness despite sleeping 8 hours"
+}
+
+###
+
+### Log nausea
+POST {{baseUrl}}/memory/symptoms?user_id={{userId}}
+Content-Type: application/json
+
+{
+  "symptom_name": "nausea",
+  "severity": 2,
+  "description": "Morning sickness"
+}
+
+###
+
+### Get recent symptoms (7 days)
+GET {{baseUrl}}/memory/symptoms/{{userId}}?days=7
+
+###
+
+### Get symptoms for 30 days
+GET {{baseUrl}}/memory/symptoms/{{userId}}?days=30
+
+###
+
+### Get symptom timeline
+GET {{baseUrl}}/memory/symptoms/{{userId}}/timeline?days=30
+
+###
+
+### Get symptom patterns
+GET {{baseUrl}}/memory/symptoms/{{userId}}/patterns?days=60
+
+###
+
+### Get symptom frequencies
+GET {{baseUrl}}/memory/symptoms/{{userId}}/frequencies?days=30
+
+###
+
+### Delete a symptom (replace STONE_ID with actual ID)
+# DELETE {{baseUrl}}/memory/symptoms/{{userId}}/STONE_ID
+
+
+# =============================================================================
+# Doctor Summary
+# =============================================================================
+
+### Generate doctor summary (JSON)
+GET {{baseUrl}}/memory/doctor-summary/{{userId}}?days=30&format=json
+
+###
+
+### Generate doctor summary (Markdown)
+GET {{baseUrl}}/memory/doctor-summary/{{userId}}?days=30&format=markdown
+
+
+# =============================================================================
+# Context Pyramid
+# =============================================================================
+
+### Get full context pyramid
+POST {{baseUrl}}/memory/context/{{userId}}
+Content-Type: application/json
+
+{
+  "query": "What should I eat for iron deficiency?",
+  "max_tokens": 2000
+}
+
+###
+
+### Get context pyramid for symptoms query
+POST {{baseUrl}}/memory/context/{{userId}}
+Content-Type: application/json
+
+{
+  "query": "I'm feeling tired and having headaches",
+  "max_tokens": 1500,
+  "layers": [0, 2, 3]
+}
+
+###
+
+### Get context string (LLM-ready)
+GET {{baseUrl}}/memory/context/{{userId}}/string?query=nutrition advice&max_tokens=2000
+
+###
+
+### Get Layer 0 - User Info
+GET {{baseUrl}}/memory/context/{{userId}}/layer/0
+
+###
+
+### Get Layer 1 - Nutrient Trends
+GET {{baseUrl}}/memory/context/{{userId}}/layer/1
+
+###
+
+### Get Layer 2 - Recent Symptoms
+GET {{baseUrl}}/memory/context/{{userId}}/layer/2
+
+###
+
+### Get Layer 3 - Allergies
+GET {{baseUrl}}/memory/context/{{userId}}/layer/3
+
+###
+
+### Get Layer 4 - Message History
+GET {{baseUrl}}/memory/context/{{userId}}/layer/4
