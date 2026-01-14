@@ -1,8 +1,8 @@
 """
 SRS - Smart Retrieval System
 
-Provides dynamic vector store routing and retrieval using MiniLM
-for query classification and FAISS for similarity search.
+Provides dynamic vector store routing using Groq LLM for query
+classification and FAISS for similarity search.
 """
 
 from .VectorRegistry import (

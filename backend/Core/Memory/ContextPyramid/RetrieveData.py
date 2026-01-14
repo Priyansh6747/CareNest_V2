@@ -249,7 +249,12 @@ class RetrieveData:
             end_date = datetime.now(timezone.utc).date()
             start_date = end_date - timedelta(days=days)
             
-            raw_data = extractor.build_raw_data(start_date, end_date)
+            # Use sync version if available, otherwise return empty
+            try:
+                raw_data = extractor.build_raw_data_sync(start_date, end_date)
+            except AttributeError:
+                # Fallback: fetch meals directly from Firestore
+                raw_data = self._fetch_nutrition_from_firestore(start_date, end_date)
             
             if not raw_data:
                 return {"error": "no_data", "days": days}
@@ -278,6 +283,36 @@ class RetrieveData:
         except Exception as e:
             logger.error(f"Failed to fetch nutrient trends: {e}")
             return {"error": str(e)}
+    
+    def _fetch_nutrition_from_firestore(self, start_date, end_date) -> List[Dict]:
+        """Fallback: fetch nutrition data directly from Firestore."""
+        try:
+            meals_collection = firestoreDB.collection("users").document(self.user_id).collection("meals")
+            
+            from datetime import datetime as dt
+            start_dt = dt.combine(start_date, dt.min.time()).replace(tzinfo=timezone.utc)
+            end_dt = dt.combine(end_date, dt.max.time()).replace(tzinfo=timezone.utc)
+            
+            query = meals_collection.where("created_at", ">=", start_dt).where("created_at", "<=", end_dt)
+            
+            # Group by date
+            daily_data = {}
+            for doc in query.stream():
+                data = doc.to_dict()
+                created = data.get("created_at")
+                if created:
+                    date_key = created.strftime("%Y-%m-%d") if hasattr(created, 'strftime') else str(created)[:10]
+                    if date_key not in daily_data:
+                        daily_data[date_key] = {"meal_count": 0, "protein_g": 0, "fiber_g": 0}
+                    daily_data[date_key]["meal_count"] += 1
+                    analysis = data.get("analysis", {})
+                    daily_data[date_key]["protein_g"] += analysis.get("protein", 0)
+                    daily_data[date_key]["fiber_g"] += analysis.get("fiber", 0)
+            
+            return list(daily_data.values())
+        except Exception as e:
+            logger.warning(f"Fallback nutrition fetch failed: {e}")
+            return []
     
     # =========================================================================
     # Recent Symptoms (Layer 2)

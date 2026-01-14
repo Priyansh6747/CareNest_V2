@@ -38,7 +38,7 @@ class LoadedStore:
         top_k: int = 5
     ) -> List[Dict[str, Any]]:
         """
-        Search the store for similar chunks.
+        Search the store for similar chunks using FAISS.
         
         Args:
             query_embedding: Query vector (1D or 2D array)
@@ -65,6 +65,50 @@ class LoadedStore:
             results.append(chunk)
         
         return results
+    
+    def search_by_keywords(
+        self,
+        query: str,
+        top_k: int = 5
+    ) -> List[Dict[str, Any]]:
+        """
+        Search the store using keyword matching (no embeddings required).
+        
+        Args:
+            query: Text query
+            top_k: Number of results to return
+            
+        Returns:
+            List of chunks with scores
+        """
+        query_lower = query.lower()
+        query_words = set(query_lower.split())
+        
+        scored_chunks = []
+        for chunk in self.chunks:
+            text = chunk.get('text', '').lower()
+            
+            # Count word matches
+            matches = sum(1 for word in query_words if word in text)
+            
+            # Bonus for exact phrase match
+            phrase_bonus = 0.5 if query_lower in text else 0
+            
+            # Calculate score
+            if matches > 0:
+                score = (matches / len(query_words)) + phrase_bonus
+                chunk_copy = chunk.copy()
+                chunk_copy['score'] = score
+                scored_chunks.append(chunk_copy)
+        
+        # Sort by score descending
+        scored_chunks.sort(key=lambda x: x['score'], reverse=True)
+        
+        # Add rank
+        for i, chunk in enumerate(scored_chunks[:top_k]):
+            chunk['rank'] = i + 1
+        
+        return scored_chunks[:top_k]
 
 
 # =============================================================================

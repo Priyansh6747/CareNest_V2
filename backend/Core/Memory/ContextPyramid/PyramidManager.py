@@ -185,16 +185,37 @@ class PyramidManager:
             
             # Calculate gestational info
             if maternal.expected_delivery_date:
-                days_until = (maternal.expected_delivery_date - datetime.now(timezone.utc)).days
-                if days_until > 0:
-                    data["days_until_delivery"] = days_until
-                    data["weeks_pregnant"] = 40 - (days_until // 7)
+                edd = maternal.expected_delivery_date
+                # Handle string dates from Firestore
+                if isinstance(edd, str):
+                    try:
+                        from dateutil.parser import parse
+                        edd = parse(edd)
+                    except:
+                        edd = None
+                if edd:
+                    now = datetime.now(timezone.utc)
+                    if edd.tzinfo is None:
+                        edd = edd.replace(tzinfo=timezone.utc)
+                    days_until = (edd - now).days
+                    if days_until > 0:
+                        data["days_until_delivery"] = days_until
+                        data["weeks_pregnant"] = 40 - (days_until // 7)
         
         if baby:
             data["baby_name"] = baby.name
             data["baby_feeding"] = baby.feeding_type
-            # Calculate baby age
-            age_days = (datetime.now(timezone.utc) - baby.date_of_birth.replace(tzinfo=timezone.utc)).days
+            # Calculate baby age - handle string dates
+            dob = baby.date_of_birth
+            if isinstance(dob, str):
+                try:
+                    from dateutil.parser import parse
+                    dob = parse(dob)
+                except:
+                    dob = datetime.now(timezone.utc)
+            if dob.tzinfo is None:
+                dob = dob.replace(tzinfo=timezone.utc)
+            age_days = (datetime.now(timezone.utc) - dob).days
             data["baby_age_months"] = max(0, age_days // 30)
         
         return LayerContent(

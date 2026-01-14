@@ -85,9 +85,9 @@ class RetrievalChain:
     End-to-end retrieval pipeline.
     
     Flow:
-    1. Route query to best matching stores (SmartRouter)
+    1. Route query to best matching stores (SmartRouter via Groq)
     2. Load required stores dynamically (DynamicLoader)
-    3. Search each store with query embedding
+    3. Search each store with text-based matching
     4. Merge and re-rank results
     5. Return curated context
     """
@@ -115,7 +115,7 @@ class RetrievalChain:
     
     def _merge_and_rerank(
         self,
-        all_results: List[tuple[str, List[Dict]]],
+        all_results: List[tuple],
         top_k: int
     ) -> List[RetrievedChunk]:
         """
@@ -163,7 +163,7 @@ class RetrievalChain:
         query: str,
         top_k_stores: int = None,
         top_k_chunks: int = None,
-        min_store_similarity: float = 0.15
+        min_score: float = 0.1
     ) -> RetrievalResult:
         """
         Execute the full retrieval pipeline.
@@ -172,7 +172,7 @@ class RetrievalChain:
             query: User's search query
             top_k_stores: Maximum stores to search
             top_k_chunks: Maximum chunks to return
-            min_store_similarity: Minimum store routing similarity
+            min_score: Minimum store routing score
             
         Returns:
             RetrievalResult with chunks and metadata
@@ -183,11 +183,11 @@ class RetrievalChain:
         top_k_stores = top_k_stores or self.DEFAULT_TOP_K_STORES
         top_k_chunks = top_k_chunks or self.DEFAULT_TOP_K_CHUNKS
         
-        # Step 1: Route to best stores
+        # Step 1: Route to best stores using Groq LLM
         route_results = self.router.route_query(
             query,
             top_k=top_k_stores,
-            min_similarity=min_store_similarity
+            min_score=min_score
         )
         
         if not route_results:
@@ -205,17 +205,15 @@ class RetrievalChain:
         all_results = []
         stores_searched = []
         
-        # Encode query once
-        query_embedding = self.registry.embedder.encode(query, convert_to_numpy=True)
-        
         for route in route_results:
             store = self.loader.get(route.store_id)
             if store is None:
                 logger.warning(f"Failed to load store: {route.store_id}")
                 continue
             
-            # Search this store
-            chunks = store.search(query_embedding, top_k=top_k_chunks)
+            # Search this store using text-based matching
+            # Store.search now uses keyword matching since we don't have embeddings
+            chunks = store.search_by_keywords(query, top_k=top_k_chunks)
             all_results.append((route.store_id, chunks))
             stores_searched.append(route.store_id)
         

@@ -20,12 +20,13 @@ google-cloud-firestore>=2.10.0
 # -----------------------------------------------------------------------------
 numpy>=1.24.0
 pandas>=2.0.0
+python-dateutil>=2.8.0
 
 # -----------------------------------------------------------------------------
-# Vector Search & Embeddings (Memory Module - SRS)
+# Vector Search & Semantic Routing (Memory Module - SRS)
 # -----------------------------------------------------------------------------
 faiss-cpu>=1.7.4
-sentence-transformers>=2.2.0
+groq>=0.4.0
 
 # -----------------------------------------------------------------------------
 # HTTP & Environment
@@ -46,12 +47,10 @@ autogluon.timeseries>=1.0.0
 chronos-forecasting>=2.0.0
 
 # -----------------------------------------------------------------------------
-# ML Dependencies (pulled by sentence-transformers/autogluon)
-# These are pinned for compatibility
+# ML Dependencies (pulled by autogluon)
 # -----------------------------------------------------------------------------
 torch>=2.0.0
 transformers>=4.30.0
-huggingface-hub>=0.16.0
 
 # -----------------------------------------------------------------------------
 # Google AI (for nutrition analysis with Gemini)

@@ -114,15 +114,16 @@ class TimelineMapper:
             from Core.Insights.DataExtractor import DataExtractor
             extractor = DataExtractor(self.user_id)
             
-            nutrition = extractor.fetch_daily_nutrition(date.date())
-            water = extractor.fetch_daily_water(date.date())
+            # These are sync methods that fetch from Firestore
+            nutrition = extractor.fetch_daily_nutrition_sync(date.date())
+            water = extractor.fetch_daily_water_sync(date.date())
             
             return {
-                "protein_g": nutrition.get("protein_g", 0),
-                "iron_mg": nutrition.get("iron_mg", 0),
-                "fiber_g": nutrition.get("fiber_g", 0),
-                "water_ml": water.get("water_intake_ml", 0),
-                "meal_count": nutrition.get("meal_count", 0),
+                "protein_g": nutrition.get("protein_g", 0) if nutrition else 0,
+                "iron_mg": nutrition.get("iron_mg", 0) if nutrition else 0,
+                "fiber_g": nutrition.get("fiber_g", 0) if nutrition else 0,
+                "water_ml": water.get("water_intake_ml", 0) if water else 0,
+                "meal_count": nutrition.get("meal_count", 0) if nutrition else 0,
             }
         except Exception as e:
             logger.warning(f"Failed to fetch nutrition context: {e}")

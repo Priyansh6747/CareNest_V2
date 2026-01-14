@@ -1,8 +1,8 @@
 """
 VectorRegistry.py - Metadata Registry for Vector Stores
 
-Scans all vector store directories, loads metadata.json files,
-and builds an embedding-based index for smart routing using MiniLM.
+Scans all vector store directories, loads metadata.json files.
+Uses precomputed embeddings stored in metadata for matching.
 """
 
 import os
@@ -11,8 +11,6 @@ import logging
 from pathlib import Path
 from typing import List, Dict, Optional
 from dataclasses import dataclass, field
-from sentence_transformers import SentenceTransformer
-import numpy as np
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -36,11 +34,8 @@ class VectorStoreInfo:
     keywords: List[str]            # Extracted keywords
     storage_mb: float              # Storage size in MB
     
-    # Computed embedding for routing
-    metadata_embedding: Optional[np.ndarray] = field(default=None, repr=False)
-    
     def get_searchable_text(self) -> str:
-        """Combine metadata into searchable text for embedding."""
+        """Combine metadata into searchable text."""
         parts = [
             self.book_name,
             self.context_summary,
@@ -57,12 +52,9 @@ class VectorRegistry:
     """
     Registry for all available vector stores.
     
-    Scans the data directory, loads metadata, and computes embeddings
-    for each store to enable smart query routing.
+    Scans the data directory and loads metadata for each store.
+    No local model download - uses Groq LLM for classification.
     """
-    
-    # MiniLM model for embedding metadata (matches existing 384-dim stores)
-    MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
     
     def __init__(self, data_dir: Optional[str] = None):
         """
@@ -79,21 +71,10 @@ class VectorRegistry:
         
         self.data_dir = Path(data_dir)
         self.stores: Dict[str, VectorStoreInfo] = {}
-        self._embedder: Optional[SentenceTransformer] = None
-        self._store_embeddings: Optional[np.ndarray] = None
-        self._store_ids: List[str] = []
         
         # Load registry on init
         self._scan_stores()
         
-    @property
-    def embedder(self) -> SentenceTransformer:
-        """Lazy-load the embedding model."""
-        if self._embedder is None:
-            logger.info(f"Loading embedding model: {self.MODEL_NAME}")
-            self._embedder = SentenceTransformer(self.MODEL_NAME)
-        return self._embedder
-    
     def _scan_stores(self) -> None:
         """Scan data directory and load all store metadata."""
         if not self.data_dir.exists():
@@ -116,10 +97,6 @@ class VectorRegistry:
                     self._load_store_metadata(store_dir, metadata_path)
         
         logger.info(f"Loaded {len(self.stores)} vector stores")
-        
-        # Compute embeddings for all stores
-        if self.stores:
-            self._compute_store_embeddings()
     
     def _load_store_metadata(self, store_dir: Path, metadata_path: Path) -> None:
         """Load metadata from a single store."""
@@ -148,23 +125,6 @@ class VectorRegistry:
         except Exception as e:
             logger.error(f"Failed to load metadata from {metadata_path}: {e}")
     
-    def _compute_store_embeddings(self) -> None:
-        """Compute embeddings for all store metadata."""
-        logger.info("Computing embeddings for store metadata...")
-        
-        self._store_ids = list(self.stores.keys())
-        texts = [self.stores[sid].get_searchable_text() for sid in self._store_ids]
-        
-        # Batch encode all store metadata
-        embeddings = self.embedder.encode(texts, convert_to_numpy=True, show_progress_bar=False)
-        self._store_embeddings = embeddings
-        
-        # Store individual embeddings in each store info
-        for i, store_id in enumerate(self._store_ids):
-            self.stores[store_id].metadata_embedding = embeddings[i]
-        
-        logger.info(f"Computed embeddings for {len(self._store_ids)} stores")
-    
     def get_store(self, store_id: str) -> Optional[VectorStoreInfo]:
         """Get a specific store by ID."""
         return self.stores.get(store_id)
@@ -173,22 +133,21 @@ class VectorRegistry:
         """List all registered stores."""
         return list(self.stores.values())
     
-    def get_store_embeddings(self) -> tuple[np.ndarray, List[str]]:
-        """
-        Get the embedding matrix and corresponding store IDs.
-        
-        Returns:
-            Tuple of (embeddings array, list of store IDs)
-        """
-        if self._store_embeddings is None:
-            self._compute_store_embeddings()
-        return self._store_embeddings, self._store_ids
+    def get_store_descriptions(self) -> List[Dict]:
+        """Get store descriptions for LLM routing."""
+        return [
+            {
+                "id": s.store_id,
+                "name": s.book_name,
+                "keywords": s.keywords[:8],
+                "summary": s.context_summary[:200] if s.context_summary else "",
+            }
+            for s in self.stores.values()
+        ]
     
     def refresh(self) -> None:
         """Re-scan and reload all store metadata."""
         self.stores.clear()
-        self._store_embeddings = None
-        self._store_ids = []
         self._scan_stores()
     
     def get_stats(self) -> Dict:
@@ -200,7 +159,7 @@ class VectorRegistry:
             "total_stores": len(self.stores),
             "total_chunks": total_chunks,
             "total_storage_mb": round(total_storage, 2),
-            "embedding_model": self.MODEL_NAME,
+            "routing_method": "groq_llm",
             "stores": [
                 {
                     "id": s.store_id,
