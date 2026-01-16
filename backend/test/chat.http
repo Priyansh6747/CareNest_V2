@@ -1,0 +1,150 @@
+### Chat Module API Tests
+### Use these with VS Code REST Client extension
+
+@baseUrl = http://127.0.0.1:8000
+@userId = MbG3wwDSH1o5lqQYoFG1
+
+# =============================================================================
+# Provider Information
+# =============================================================================
+
+### List available providers
+GET {{baseUrl}}/chat/providers
+
+###
+
+# =============================================================================
+# Chat - Single Turn
+# =============================================================================
+
+### Basic chat with Groq (default)
+POST {{baseUrl}}/chat/message?user_id={{userId}}
+Content-Type: application/json
+
+{
+  "message": "What foods are high in iron during pregnancy?"
+}
+
+###
+
+### Chat with Gemini
+POST {{baseUrl}}/chat/message?user_id={{userId}}
+Content-Type: application/json
+
+{
+  "message": "What are good sources of omega-3 for pregnant women?",
+  "provider": "gemini"
+}
+
+###
+
+### Chat without sources
+POST {{baseUrl}}/chat/message?user_id={{userId}}
+Content-Type: application/json
+
+{
+  "message": "How much water should I drink daily?",
+  "provider": "groq",
+  "include_sources": false
+}
+
+###
+
+### Chat with specific model
+POST {{baseUrl}}/chat/message?user_id={{userId}}
+Content-Type: application/json
+
+{
+  "message": "What are symptoms of iron deficiency?",
+  "provider": "groq",
+  "model": "llama-3.1-8b-instant"
+}
+
+###
+
+### Health question
+POST {{baseUrl}}/chat/message?user_id={{userId}}
+Content-Type: application/json
+
+{
+  "message": "I've been feeling very tired lately. Is this normal during pregnancy?",
+  "provider": "groq"
+}
+
+###
+
+### Nutrition question
+POST {{baseUrl}}/chat/message?user_id={{userId}}
+Content-Type: application/json
+
+{
+  "message": "What should I eat for breakfast to get more protein?",
+  "provider": "groq"
+}
+
+###
+
+# =============================================================================
+# Chat - Streaming
+# =============================================================================
+
+### Stream response with Groq
+POST {{baseUrl}}/chat/stream?user_id={{userId}}
+Content-Type: application/json
+
+{
+  "message": "Explain the importance of folic acid during pregnancy",
+  "provider": "groq"
+}
+
+###
+
+### Stream response with Gemini
+POST {{baseUrl}}/chat/stream?user_id={{userId}}
+Content-Type: application/json
+
+{
+  "message": "What are the best foods for baby brain development?",
+  "provider": "gemini"
+}
+
+###
+
+# =============================================================================
+# Message History
+# =============================================================================
+
+### Get message history
+GET {{baseUrl}}/chat/history/{{userId}}?limit=20
+
+###
+
+### Get limited history
+GET {{baseUrl}}/chat/history/{{userId}}?limit=5
+
+###
+
+### Clear message history
+DELETE {{baseUrl}}/chat/history/{{userId}}
+
+###
+
+# =============================================================================
+# Context Verification (using memory endpoints)
+# =============================================================================
+
+### Verify Layer 4 (Message History) via Context Pyramid
+GET {{baseUrl}}/memory/context/{{userId}}/layer/4
+
+###
+
+### Get full context pyramid
+POST {{baseUrl}}/memory/context/{{userId}}
+Content-Type: application/json
+
+{
+  "query": "nutrition advice",
+  "max_tokens": 2000
+}
+
+###
