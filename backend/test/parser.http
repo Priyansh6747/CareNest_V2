@@ -1,0 +1,60 @@
+### Parser API Tests
+### Base URL: http://localhost:8000/parser
+
+### ==============================================
+### Extract entities from text
+### ==============================================
+POST http://localhost:8000/parser/extract-entities
+Content-Type: application/json
+
+{
+  "text": "Patient: Jane Doe, 32 years old, G2P1. Gestational age: 28 weeks. VITALS: BP 140/92 mmHg, HR 88 bpm, Temp 98.6°F. LABS: Hemoglobin 10.2 g/dL, Glucose 98 mg/dL, WBC 12.5. IMPRESSION: Gestational hypertension, mild anemia. PLAN: Iron supplementation, BP monitoring.",
+  "confidence_threshold": 0.7
+}
+
+### ==============================================
+### Extract entities - maternal health sample
+### ==============================================
+POST http://localhost:8000/parser/extract-entities
+Content-Type: application/json
+
+{
+  "text": "PRENATAL VISIT - 28 weeks gestation. G1P0. EDD: March 15, 2026. LMP: June 8, 2025. Fetal heart rate: 145 bpm. Fundal height: 28 cm. Patient reports decreased fetal movement. Current medications: Prenatal vitamins, Folic acid 400mcg daily, Ferrous sulfate 325mg daily.",
+  "confidence_threshold": 0.6
+}
+
+### ==============================================
+### Generate insights
+### ==============================================
+POST http://localhost:8000/parser/insights
+Content-Type: application/json
+
+{
+  "text": "PATIENT: Mary Smith, 30 years old, G3P2. CHIEF COMPLAINT: Headache and visual changes. VITALS: BP 158/98 mmHg, HR 92 bpm. LABS: Protein in urine 2+, Hemoglobin 9.8 g/dL, Platelets 140. ASSESSMENT: Suspected preeclampsia at 34 weeks gestation. Anemia. PLAN: Admit for observation, magnesium sulfate protocol, betamethasone for fetal lung maturity."
+}
+
+### ==============================================
+### Full analysis pipeline
+### ==============================================
+POST http://localhost:8000/parser/analyze
+Content-Type: application/x-www-form-urlencoded
+
+text=PATIENT: Sarah Johnson, 28yo G2P1. Gestational Age: 32 weeks. VITALS: BP 118/76 mmHg, HR 78 bpm, Weight 72kg. LABS: Hemoglobin 11.5 g/dL, Fasting Glucose 88 mg/dL, HbA1c 5.2%. FHR: 150 bpm. IMPRESSION: Normal pregnancy at 32 weeks. Continue prenatal care and iron supplements.
+
+### ==============================================
+### Extract text from PDF (requires file upload)
+### ==============================================
+# POST http://localhost:8000/parser/pdf/extract-text
+# Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+# 
+# ------WebKitFormBoundary
+# Content-Disposition: form-data; name="file"; filename="report.pdf"
+# Content-Type: application/pdf
+# 
+# < ./sample_report.pdf
+# ------WebKitFormBoundary--
+
+### ==============================================
+### Health check - root endpoint
+### ==============================================
+GET http://localhost:8000/

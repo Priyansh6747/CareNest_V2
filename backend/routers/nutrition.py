@@ -47,6 +47,88 @@ router = APIRouter(prefix="/nutrition", tags=["Nutrition"])
 
 
 # ============================================================================
+# Full Meal Analysis Pipeline (User just enters name/desc/image)
+# ============================================================================
+
+from pydantic import BaseModel, Field
+
+class MealAnalyzeRequest(BaseModel):
+    """Request model for full meal analysis - user just enters name and description."""
+    name: str = Field(..., description="Meal name (e.g., 'Chole Bhature')")
+    desc: Optional[str] = Field(default=None, description="Meal description")
+    amnt: float = Field(default=100.0, gt=0, description="Amount in grams")
+    # image_url: Optional[str] = Field(default=None, description="Optional image URL")  # For future
+
+
+@router.post(
+    "/analyze/{user_id}",
+    response_model=Meal,
+    status_code=status.HTTP_201_CREATED,
+    summary="Analyze meal and save",
+    description="Full pipeline: User enters name + description, AI analyzes nutrients, saves to database.",
+)
+async def analyze_and_save_meal_endpoint(user_id: str, request: MealAnalyzeRequest):
+    """
+    Full meal analysis pipeline:
+    1. User provides: name, description, amount
+    2. AI analyzes: extracts nutrients (protein, fiber, iron, vitamin D, omega-3)
+    3. Saves: Creates meal record in database
+    
+    This is the simple endpoint for users who just want to log what they ate.
+    """
+    from Core.Nutrition.Pipeline import analyze_and_save_meal
+    
+    try:
+        return await analyze_and_save_meal(
+            user_id=user_id,
+            name=request.name,
+            desc=request.desc,
+            amnt=request.amnt
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to analyze and save meal: {str(e)}"
+        )
+
+
+@router.post(
+    "/analyze-only",
+    summary="Analyze meal without saving",
+    description="Get nutrient analysis for a meal without saving to database.",
+)
+async def analyze_meal_only_endpoint(request: MealAnalyzeRequest):
+    """
+    Analyze meal nutrients without saving.
+    
+    Useful for previewing nutrition info before logging.
+    """
+    from Core.Nutrition.Pipeline import analyze_meal
+    
+    try:
+        result = analyze_meal(
+            name=request.name,
+            desc=request.desc,
+            amnt=request.amnt
+        )
+        
+        return {
+            "name": result.name,
+            "description": result.description,
+            "amount": result.amount,
+            "nutrients": result.nutrients,
+            "success": result.success,
+            "message": result.message
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to analyze meal: {str(e)}"
+        )
+
+
+# ============================================================================
 # Meal CRUD Endpoints
 # ============================================================================
 

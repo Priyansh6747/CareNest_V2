@@ -33,40 +33,165 @@ class MedicalNERExtractor:
 
 
     def _create_custom_patterns(self) -> List[Dict]:
-        """Create custom patterns for medical entities"""
+        """Create custom patterns for medical entities including maternal health"""
         patterns = []
         
-        # Medication patterns
+        # ============================================
+        # Medication patterns (expanded for maternal health)
+        # ============================================
         medication_patterns = [
+            # Common medications
             {"label": "MEDICATION", "pattern": [{"LOWER": {"IN": [
                 "aspirin", "ibuprofen", "acetaminophen", "metformin",
-                "lisinopril", "atorvastatin", "amlodipine", "metoprolol"
+                "lisinopril", "atorvastatin", "amlodipine", "metoprolol",
+                "omeprazole", "levothyroxine", "prednisone", "gabapentin"
             ]}}]},
+            # Prenatal/Maternal medications
+            {"label": "MEDICATION", "pattern": [{"LOWER": {"IN": [
+                "prenatal", "folic", "folate", "iron", "ferrous",
+                "progesterone", "methyldopa", "labetalol", "nifedipine",
+                "magnesium", "betamethasone", "dexamethasone", "terbutaline"
+            ]}}]},
+            # Medication with dosage pattern
             {"label": "MEDICATION", "pattern": [
                 {"POS": "PROPN", "OP": "?"},
                 {"LIKE_NUM": True},
-                {"LOWER": {"IN": ["mg", "g", "ml"]}},
-                {"LOWER": {"IN": ["daily", "bid", "tid", "qid", "qhs"]}, "OP": "?"}
+                {"LOWER": {"IN": ["mg", "g", "ml", "mcg", "µg", "iu"]}},
+                {"LOWER": {"IN": ["daily", "bid", "tid", "qid", "qhs", "prn", "po", "iv"]}, "OP": "?"}
             ]}
         ]
         patterns.extend(medication_patterns)
         
-        # Lab value patterns
-        lab_patterns = [
+        # ============================================
+        # Condition patterns (maternal health focused)
+        # ============================================
+        condition_patterns = [
+            # Pregnancy conditions
+            {"label": "CONDITION", "pattern": [{"LOWER": "gestational"}, {"LOWER": {"IN": ["diabetes", "hypertension", "dm", "htn"]}}]},
+            {"label": "CONDITION", "pattern": [{"LOWER": {"IN": [
+                "preeclampsia", "pre-eclampsia", "eclampsia",
+                "hellp", "placenta", "previa", "abruption"
+            ]}}]},
+            # Anemia variants
+            {"label": "CONDITION", "pattern": [{"LOWER": {"IN": ["iron", "folate", "b12"]}}, {"LOWER": "deficiency"}, {"LOWER": "anemia", "OP": "?"}]},
+            {"label": "CONDITION", "pattern": [{"LOWER": "anemia"}]},
+            # Common conditions
+            {"label": "CONDITION", "pattern": [{"LOWER": {"IN": [
+                "diabetes", "hypertension", "hypothyroidism", "hyperthyroidism",
+                "obesity", "depression", "anxiety", "asthma"
+            ]}}]},
+            # Pregnancy status
+            {"label": "CONDITION", "pattern": [{"LOWER": {"IN": ["pregnancy", "pregnant", "gravid"]}}]},
+        ]
+        patterns.extend(condition_patterns)
+        
+        # ============================================
+        # Measurement patterns (vitals and labs)
+        # ============================================
+        measurement_patterns = [
+            # Vital signs
             {"label": "MEASUREMENT", "pattern": [
-                {"TEXT": {"REGEX": r"^(BP|HR|RR|Temp|SpO2|O2|BMI)"}},
+                {"TEXT": {"REGEX": r"^(BP|B\.P\.)$"}},
                 {"TEXT": ":", "OP": "?"},
-                {"LIKE_NUM": True},
-                {"TEXT": {"REGEX": r"^(mmHg|bpm|/min|°F|°C|%)"}, "OP": "?"}
+                {"TEXT": {"REGEX": r"^\d{2,3}$"}},
+                {"TEXT": "/"},
+                {"TEXT": {"REGEX": r"^\d{2,3}$"}},
+                {"TEXT": {"REGEX": r"^(mmHg|mm\s*Hg)?$"}, "OP": "?"}
             ]},
             {"label": "MEASUREMENT", "pattern": [
-                {"TEXT": {"REGEX": r"^(WBC|RBC|HGB|HCT|PLT|ALT|AST|BUN|Cr|Na|K|Glucose)"}},
+                {"TEXT": {"REGEX": r"^(HR|Heart\s*Rate|Pulse)$"}},
                 {"TEXT": ":", "OP": "?"},
                 {"LIKE_NUM": True},
-                {"TEXT": {"REGEX": r"^[a-zA-Z/μLdL]+$"}, "OP": "?"}
-            ]}
+                {"TEXT": {"REGEX": r"^(bpm|/min)?$"}, "OP": "?"}
+            ]},
+            {"label": "MEASUREMENT", "pattern": [
+                {"TEXT": {"REGEX": r"^(Temp|Temperature)$"}},
+                {"TEXT": ":", "OP": "?"},
+                {"TEXT": {"REGEX": r"^\d{2,3}\.?\d?$"}},
+                {"TEXT": {"REGEX": r"^(°F|°C|F|C)?$"}, "OP": "?"}
+            ]},
+            {"label": "MEASUREMENT", "pattern": [
+                {"TEXT": {"REGEX": r"^(SpO2|O2\s*Sat|Oxygen)$"}},
+                {"TEXT": ":", "OP": "?"},
+                {"LIKE_NUM": True},
+                {"TEXT": "%", "OP": "?"}
+            ]},
+            # Lab values
+            {"label": "MEASUREMENT", "pattern": [
+                {"TEXT": {"REGEX": r"^(WBC|RBC|HGB|Hgb|HCT|Hct|PLT|Platelets)$"}},
+                {"TEXT": ":", "OP": "?"},
+                {"LIKE_NUM": True},
+                {"TEXT": {"REGEX": r"^[a-zA-Z/%μL]+$"}, "OP": "?"}
+            ]},
+            {"label": "MEASUREMENT", "pattern": [
+                {"TEXT": {"REGEX": r"^(Glucose|FBS|RBS|HbA1c|A1C)$"}},
+                {"TEXT": ":", "OP": "?"},
+                {"LIKE_NUM": True},
+                {"TEXT": {"REGEX": r"^(mg/dL|mmol/L|%)?$"}, "OP": "?"}
+            ]},
+            {"label": "MEASUREMENT", "pattern": [
+                {"TEXT": {"REGEX": r"^(Hemoglobin|HGB|Hgb)$"}},
+                {"TEXT": ":", "OP": "?"},
+                {"LIKE_NUM": True},
+                {"TEXT": {"REGEX": r"^(g/dL|g/L)?$"}, "OP": "?"}
+            ]},
         ]
-        patterns.extend(lab_patterns)
+        patterns.extend(measurement_patterns)
+        
+        # ============================================
+        # Pregnancy-specific patterns
+        # ============================================
+        pregnancy_patterns = [
+            # Gravida/Para notation
+            {"label": "PREGNANCY_STATUS", "pattern": [
+                {"TEXT": {"REGEX": r"^G\d+$"}},
+                {"TEXT": {"REGEX": r"^P\d+$"}, "OP": "?"},
+                {"TEXT": {"REGEX": r"^A\d+$"}, "OP": "?"},
+                {"TEXT": {"REGEX": r"^L\d+$"}, "OP": "?"}
+            ]},
+            {"label": "PREGNANCY_STATUS", "pattern": [
+                {"LOWER": "gravida"},
+                {"LIKE_NUM": True},
+                {"LOWER": "para", "OP": "?"},
+                {"LIKE_NUM": True, "OP": "?"}
+            ]},
+            # Gestational age
+            {"label": "GESTATIONAL_AGE", "pattern": [
+                {"LIKE_NUM": True},
+                {"LOWER": {"IN": ["weeks", "week", "wks", "wk"]}},
+                {"LOWER": {"IN": ["gestation", "gestational", "pregnant", "ga"]}, "OP": "?"}
+            ]},
+            {"label": "GESTATIONAL_AGE", "pattern": [
+                {"LOWER": {"IN": ["gestational", "ga"]}},
+                {"LOWER": "age", "OP": "?"},
+                {"TEXT": ":", "OP": "?"},
+                {"LIKE_NUM": True},
+                {"LOWER": {"IN": ["weeks", "week", "wks", "wk"]}, "OP": "?"}
+            ]},
+            # Fetal measurements
+            {"label": "FETAL_MEASUREMENT", "pattern": [
+                {"LOWER": {"IN": ["fhr", "fetal"]}},
+                {"LOWER": {"IN": ["heart", "hr"]}, "OP": "?"},
+                {"LOWER": "rate", "OP": "?"},
+                {"TEXT": ":", "OP": "?"},
+                {"LIKE_NUM": True},
+                {"LOWER": {"IN": ["bpm", "/min"]}, "OP": "?"}
+            ]},
+            {"label": "FETAL_MEASUREMENT", "pattern": [
+                {"LOWER": "fundal"},
+                {"LOWER": "height"},
+                {"TEXT": ":", "OP": "?"},
+                {"LIKE_NUM": True},
+                {"LOWER": {"IN": ["cm", "weeks"]}, "OP": "?"}
+            ]},
+            # EDD/LMP
+            {"label": "PREGNANCY_DATE", "pattern": [
+                {"LOWER": {"IN": ["edd", "lmp", "due"]}},
+                {"LOWER": "date", "OP": "?"},
+                {"TEXT": ":", "OP": "?"}
+            ]},
+        ]
+        patterns.extend(pregnancy_patterns)
         
         return patterns
         

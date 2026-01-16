@@ -9,6 +9,63 @@
 @meal_id = AHqJJiiUjHblg44Ei86F
 
 ### ============================================================
+### FULL MEAL PIPELINE (User just enters name + description)
+### AI auto-analyzes nutrients and saves to database
+### ============================================================
+
+### Analyze and Save - User just enters what they ate
+POST {{base_url}}/nutrition/analyze/{{user_id}}
+Content-Type: application/json
+
+{
+  "name": "Chole Bhature",
+  "desc": "North Indian chickpea curry with fried bread",
+  "amnt": 300
+}
+
+### Analyze and Save - Simple meal
+POST {{base_url}}/nutrition/analyze/{{user_id}}
+Content-Type: application/json
+
+{
+  "name": "Grilled Chicken Salad",
+  "desc": "Grilled chicken breast with mixed greens and olive oil dressing",
+  "amnt": 250
+}
+
+### Analyze and Save - Minimal (just name)
+POST {{base_url}}/nutrition/analyze/{{user_id}}
+Content-Type: application/json
+
+{
+  "name": "Banana",
+  "amnt": 120
+}
+
+### Analyze Only - Preview without saving
+POST {{base_url}}/nutrition/analyze-only
+Content-Type: application/json
+
+{
+  "name": "Palak Paneer",
+  "desc": "Spinach and cottage cheese curry",
+  "amnt": 200
+}
+
+### Analyze Only - Indian sweet
+POST {{base_url}}/nutrition/analyze-only
+Content-Type: application/json
+
+{
+  "name": "Gulab Jamun",
+  "desc": "Indian milk-based sweet soaked in sugar syrup",
+  "amnt": 100
+}
+
+### ============================================================
+### EXISTING MEAL CRUD ENDPOINTS (require pre-calculated analysis)
+### ============================================================
+### ============================================================
 ### 1. Create Meal - Full Example
 ### ============================================================
 POST {{base_url}}/nutrition/meals/{{user_id}}
