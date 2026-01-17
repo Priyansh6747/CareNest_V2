@@ -7,6 +7,11 @@ import {
     TouchableOpacity,
     SafeAreaView,
     StatusBar,
+    Modal,
+    TextInput,
+    Alert,
+    Pressable,
+    ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,13 +22,23 @@ import Card from '../components/Card';
 import { colors, gradients, typography, spacing, borderRadius, shadows } from '../theme';
 import { SymptomsAPI, MemoryAPI } from '../services/apiService';
 
+const SEVERITY_LEVELS = [1, 2, 3, 4, 5];
+
 export default function SymptomReport() {
     const router = useRouter();
     const { user } = useUser();
 
     const [frequencies, setFrequencies] = useState([]);
+    const [recentLogs, setRecentLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [generatingSummary, setGeneratingSummary] = useState(false);
+    
+    // Edit Modal State
+    const [modalVisible, setModalVisible] = useState(false);
+    const [editingSymptom, setEditingSymptom] = useState(null);
+    const [editSeverity, setEditSeverity] = useState(3);
+    const [editNotes, setEditNotes] = useState('');
+    const [saving, setSaving] = useState(false);
 
     const userId = user?.uid;
 
@@ -36,12 +51,71 @@ export default function SymptomReport() {
     const loadData = async () => {
         setLoading(true);
         try {
-            const data = await SymptomsAPI.getAllFrequencies(userId, 30);
-            setFrequencies(data || []);
+            const [freqData, logsData] = await Promise.all([
+                SymptomsAPI.getAllFrequencies(userId, 30),
+                SymptomsAPI.getRecentSymptoms(userId, { days: 30, limit: 20 })
+            ]);
+            setFrequencies(freqData || []);
+            setRecentLogs(logsData || []);
         } catch (err) {
-            console.log('Failed to load symptom frequencies');
+            console.log('Failed to load symptom data:', err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleEditSymptom = (symptom) => {
+        setEditingSymptom(symptom);
+        setEditSeverity(symptom.severity);
+        setEditNotes(symptom.description || '');
+        setModalVisible(true);
+    };
+
+    const handleDeleteSymptom = (symptomId) => {
+        Alert.alert(
+            "Delete Log",
+            "Are you sure you want to delete this symptom log?",
+            [
+                { text: "Cancel", style: "cancel" },
+                { 
+                    text: "Delete", 
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await SymptomsAPI.deleteSymptom(userId, symptomId);
+                            // Optimistic update
+                            setRecentLogs(prev => prev.filter(log => log.id !== symptomId));
+                            // Reload analysis to keep charts satisfying
+                            const newFreq = await SymptomsAPI.getAllFrequencies(userId, 30);
+                            setFrequencies(newFreq || []);
+                        } catch (err) {
+                            Alert.alert('Error', 'Failed to delete symptom');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingSymptom) return;
+        setSaving(true);
+        try {
+            await SymptomsAPI.updateSymptom(userId, editingSymptom.id, {
+                severity: editSeverity,
+                description: editNotes
+            });
+            
+            setModalVisible(false);
+            setEditingSymptom(null);
+            
+            // Reload data
+            loadData();
+            Alert.alert('Success', 'Symptom updated successfully');
+        } catch (err) {
+            Alert.alert('Error', 'Failed to update symptom');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -166,6 +240,49 @@ export default function SymptomReport() {
                         })
                     )}
 
+                    {/* Recent Logs Section */}
+                    {recentLogs.length > 0 && (
+                        <View style={styles.sectionContainer}>
+                            <Text style={styles.sectionTitle}>Recent Logs</Text>
+                            {recentLogs.map((log, index) => (
+                                <Card key={index} style={styles.logCard}>
+                                    <View style={styles.logHeader}>
+                                        <View style={styles.logTitleRow}>
+                                            <View style={[styles.dot, { backgroundColor: getSeverityColor(log.severity) }]} />
+                                            <Text style={styles.logTitle}>{log.symptom_name}</Text>
+                                        </View>
+                                        <Text style={styles.logDate}>
+                                            {new Date(log.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                        </Text>
+                                    </View>
+                                    
+                                    {log.description && (
+                                        <Text style={styles.logDescription} numberOfLines={2}>
+                                            {log.description}
+                                        </Text>
+                                    )}
+
+                                    <View style={styles.logActions}>
+                                        <TouchableOpacity 
+                                            style={styles.actionButton}
+                                            onPress={() => handleEditSymptom(log)}
+                                        >
+                                            <Ionicons name="create-outline" size={18} color={colors.neonPurple} />
+                                            <Text style={styles.actionText}>Edit</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity 
+                                            style={styles.actionButton}
+                                            onPress={() => handleDeleteSymptom(log.id)}
+                                        >
+                                            <Ionicons name="trash-outline" size={18} color={colors.coralPink} />
+                                            <Text style={[styles.actionText, { color: colors.coralPink }]}>Delete</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </Card>
+                            ))}
+                        </View>
+                    )}
+
                     {/* Doctor Summary Button */}
                     {frequencies.length > 0 && (
                         <TouchableOpacity 
@@ -191,6 +308,69 @@ export default function SymptomReport() {
                         </TouchableOpacity>
                     )}
                 </ScrollView>
+
+                {/* Edit Modal */}
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={modalVisible}
+                    onRequestClose={() => setModalVisible(false)}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalTitle}>Edit Symptom</Text>
+                            
+                            <Text style={styles.modalLabel}>Severity</Text>
+                            <View style={styles.severityRow}>
+                                {SEVERITY_LEVELS.map((level) => (
+                                    <TouchableOpacity
+                                        key={level}
+                                        style={[
+                                            styles.modalSeverityBtn,
+                                            editSeverity === level && styles.modalSeverityBtnActive
+                                        ]}
+                                        onPress={() => setEditSeverity(level)}
+                                    >
+                                        <Text style={[
+                                            styles.modalSeverityText,
+                                            editSeverity === level && styles.modalSeverityTextActive
+                                        ]}>{level}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            <Text style={styles.modalLabel}>Notes</Text>
+                            <TextInput
+                                style={styles.modalInput}
+                                value={editNotes}
+                                onChangeText={setEditNotes}
+                                multiline
+                                numberOfLines={3}
+                                placeholder="Add notes..."
+                            />
+
+                            <View style={styles.modalButtons}>
+                                <TouchableOpacity 
+                                    style={[styles.modalButton, styles.cancelButton]}
+                                    onPress={() => setModalVisible(false)}
+                                >
+                                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={[styles.modalButton, styles.saveButton]}
+                                    onPress={handleSaveEdit}
+                                    disabled={saving}
+                                >
+                                    {saving ? (
+                                        <ActivityIndicator color="white" size="small" />
+                                    ) : (
+                                        <Text style={styles.saveButtonText}>Save</Text>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
             </SafeAreaView>
         </LinearGradient>
     );
@@ -329,5 +509,151 @@ const styles = StyleSheet.create({
     },
     summaryButtonText: {
         ...typography.button,
+    },
+    // New Styles
+    sectionContainer: {
+        marginTop: spacing.lg,
+        marginBottom: spacing.md,
+    },
+    sectionTitle: {
+        ...typography.h3,
+        marginBottom: spacing.sm,
+        color: colors.inkPurple,
+    },
+    logCard: {
+        marginBottom: spacing.sm,
+        padding: spacing.md,
+    },
+    logHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: spacing.xs,
+    },
+    logTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
+    },
+    logTitle: {
+        ...typography.body,
+        fontWeight: '600',
+        color: colors.midnight,
+        textTransform: 'capitalize',
+    },
+    logDate: {
+        ...typography.caption,
+        color: colors.dustyPurple,
+    },
+    logDescription: {
+        ...typography.caption,
+        color: colors.slate,
+        marginBottom: spacing.sm,
+        marginTop: spacing.xs,
+    },
+    logActions: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        gap: spacing.lg,
+        marginTop: spacing.xs,
+        borderTopWidth: 1,
+        borderTopColor: colors.lightLavendar,
+        paddingTop: spacing.sm,
+    },
+    actionButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    actionText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: colors.neonPurple,
+    },
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: spacing.lg,
+    },
+    modalContent: {
+        backgroundColor: colors.white,
+        borderRadius: borderRadius.lg,
+        padding: spacing.xl,
+        width: '100%',
+        maxWidth: 400,
+        ...shadows.medium,
+    },
+    modalTitle: {
+        ...typography.h2,
+        marginBottom: spacing.lg,
+        textAlign: 'center',
+    },
+    modalLabel: {
+        ...typography.bodySmall,
+        fontWeight: '600',
+        color: colors.slate,
+        marginBottom: spacing.sm,
+    },
+    severityRow: {
+        flexDirection: 'row',
+        gap: spacing.sm,
+        marginBottom: spacing.lg,
+    },
+    modalSeverityBtn: {
+        flex: 1,
+        height: 40,
+        borderRadius: borderRadius.md,
+        borderWidth: 1,
+        borderColor: colors.lightOrchid,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalSeverityBtnActive: {
+        backgroundColor: colors.neonPurple,
+        borderColor: colors.neonPurple,
+    },
+    modalSeverityText: {
+        color: colors.dustyPurple,
+        fontWeight: '600',
+    },
+    modalSeverityTextActive: {
+        color: colors.white,
+    },
+    modalInput: {
+        borderWidth: 1,
+        borderColor: colors.lightLavendar,
+        borderRadius: borderRadius.md,
+        padding: spacing.md,
+        height: 100,
+        textAlignVertical: 'top',
+        marginBottom: spacing.xl,
+        backgroundColor: colors.paleCream,
+    },
+    modalButtons: {
+        flexDirection: 'row',
+        gap: spacing.md,
+    },
+    modalButton: {
+        flex: 1,
+        padding: spacing.md,
+        borderRadius: borderRadius.md,
+        alignItems: 'center',
+    },
+    cancelButton: {
+        backgroundColor: colors.lightLavendar,
+    },
+    saveButton: {
+        backgroundColor: colors.neonPurple,
+    },
+    cancelButtonText: {
+        color: colors.inkPurple,
+        fontWeight: '600',
+    },
+    saveButtonText: {
+        color: colors.white,
+        fontWeight: '600',
     },
 });
