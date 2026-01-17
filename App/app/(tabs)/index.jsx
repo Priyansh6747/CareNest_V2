@@ -46,15 +46,81 @@ const FEATURES = [
         route: '/hospitals',
         color: colors.dustyPurple,
     },
+    {
+        id: 'vaccines',
+        title: 'Vaccine\nTracker',
+        icon: 'shield-checkmark',
+        route: '/vacc-tracker',
+        color: colors.success,
+    },
 ];
 
 export default function Home() {
     const router = useRouter();
     const { user } = useUser();
     const [insights, setInsights] = useState(null);
+    const [insightsLoading, setInsightsLoading] = useState(false);
 
     const displayName = user?.displayName || 'there';
     const userId = user?.uid;
+
+    // Post-process insights to clean up nutrient names like 'iron_mg' -> 'Iron'
+    const processInsights = (rawInsights) => {
+        if (!rawInsights) return null;
+        
+        // Clean up nutrient name format: iron_mg -> Iron, vitamin_d_iu -> Vitamin D
+        const formatNutrientName = (name) => {
+            if (!name || typeof name !== 'string') return name;
+            
+            // Remove unit suffixes like _mg, _g, _iu, _mcg
+            let cleaned = name.replace(/_(mg|g|iu|mcg|µg|ml|kcal)$/i, '');
+            
+            // Replace underscores with spaces and capitalize
+            cleaned = cleaned
+                .split('_')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(' ');
+            
+            return cleaned;
+        };
+
+        const processed = { ...rawInsights };
+        
+        // Process priority_nutrients array
+        if (processed.priority_nutrients && Array.isArray(processed.priority_nutrients)) {
+            processed.priority_nutrients = processed.priority_nutrients.map(formatNutrientName);
+        }
+        
+        // Process current_nutrients array
+        if (processed.current_nutrients && Array.isArray(processed.current_nutrients)) {
+            processed.current_nutrients = processed.current_nutrients.map(nutrient => ({
+                ...nutrient,
+                name: formatNutrientName(nutrient.name)
+            }));
+        }
+        
+        // Process nutrient_forecasts object keys
+        if (processed.nutrient_forecasts && typeof processed.nutrient_forecasts === 'object') {
+            const newForecasts = {};
+            for (const [key, value] of Object.entries(processed.nutrient_forecasts)) {
+                newForecasts[formatNutrientName(key)] = value;
+            }
+            processed.nutrient_forecasts = newForecasts;
+        }
+        
+        // Process dietary_recommendations - clean up any nutrient mentions
+        if (processed.dietary_recommendations && Array.isArray(processed.dietary_recommendations)) {
+            processed.dietary_recommendations = processed.dietary_recommendations.map(rec => {
+                if (typeof rec !== 'string') return rec;
+                // Replace patterns like "iron_mg" with "Iron"
+                return rec.replace(/\b(\w+)_(mg|g|iu|mcg|µg)\b/gi, (match, name) => {
+                    return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+                });
+            });
+        }
+        
+        return processed;
+    };
 
     useEffect(() => {
         if (userId) {
@@ -63,12 +129,38 @@ export default function Home() {
     }, [userId]);
 
     const loadInsights = async () => {
+        if (!userId) return;
+        
+        setInsightsLoading(true);
         try {
+            // First try to get cached insights
+            console.log('Fetching insights for user:', userId);
             const data = await InsightsAPI.getLatestInsights(userId);
-            setInsights(data?.insights);
+            console.log('Got cached insights:', data);
+            setInsights(processInsights(data?.insights));
         } catch (err) {
-            // Silently fail - insights are optional
-            console.log('No insights available');
+            // If no cached insights, try to generate new ones
+            console.log('No cached insights found, generating new ones...');
+            try {
+                // Generate insights with default values
+                const newData = await InsightsAPI.generateInsights(userId, {
+                    trimester: 'trimester_2', // Default trimester
+                    age: 28,
+                    height_cm: 165,
+                    weight_kg: 60,
+                    activity_factor: 1.4,
+                    forecast_days: 7,
+                    context_days: 30,
+                    force_regenerate: false,
+                });
+                console.log('Generated new insights:', newData);
+                setInsights(processInsights(newData?.insights));
+            } catch (genErr) {
+                console.log('Failed to generate insights:', genErr.message);
+                // Insights require meal data logged by the user
+            }
+        } finally {
+            setInsightsLoading(false);
         }
     };
 
@@ -115,14 +207,23 @@ export default function Home() {
                     <View style={styles.insightsSection}>
                         <Text style={styles.sectionTitle}>Insights & Trends</Text>
                         <Card style={styles.insightsCard}>
-                            {insights ? (
+                            {insightsLoading ? (
+                                <View style={styles.emptyInsights}>
+                                    <Ionicons name="hourglass" size={40} color={colors.neonPurple} />
+                                    <Text style={styles.emptyText}>
+                                        Generating your personalized insights...
+                                    </Text>
+                                </View>
+                            ) : insights ? (
                                 <View>
                                     <View style={styles.insightRow}>
                                         <Ionicons name="trending-up" size={20} color={colors.neonPurple} />
                                         <Text style={styles.insightText}>
-                                            {insights.tracking_consistency
-                                                ? `Tracking consistency: ${Math.round(insights.tracking_consistency * 100)}%`
-                                                : 'Keep logging to see your trends!'}
+                                            {insights.consistency_score
+                                                ? `Tracking consistency: ${Math.round(insights.consistency_score)}%`
+                                                : insights.tracking_consistency
+                                                    ? `Tracking consistency: ${Math.round(insights.tracking_consistency * 100)}%`
+                                                    : 'Keep logging to see your trends!'}
                                         </Text>
                                     </View>
                                     {insights.priority_nutrients && insights.priority_nutrients.length > 0 && (
@@ -130,6 +231,14 @@ export default function Home() {
                                             <Ionicons name="nutrition" size={20} color={colors.softBlue} />
                                             <Text style={styles.insightText}>
                                                 Focus on: {insights.priority_nutrients.slice(0, 2).join(', ')}
+                                            </Text>
+                                        </View>
+                                    )}
+                                    {insights.dietary_recommendations && insights.dietary_recommendations.length > 0 && (
+                                        <View style={styles.insightRow}>
+                                            <Ionicons name="bulb" size={20} color={colors.warning} />
+                                            <Text style={styles.insightText}>
+                                                {insights.dietary_recommendations[0]}
                                             </Text>
                                         </View>
                                     )}

@@ -71,24 +71,49 @@ export default function Onboarding() {
             });
 
             // 2. Call backend API to initialize onboarding
+            // Calculate expected delivery date from due date or default to 9 months from now
+            const expectedDeliveryDate = dueDate 
+                ? new Date(dueDate).toISOString() 
+                : new Date(Date.now() + 9 * 30 * 24 * 60 * 60 * 1000).toISOString();
+            
+            // Map trimester number to backend enum value
+            const trimesterMap = {
+                '1': 'trimester_1',
+                '2': 'trimester_2', 
+                '3': 'trimester_3',
+            };
+
             await UserAPI.initOnboarding({
                 user: {
-                    firebase_uid: user.uid,
-                    email: user.email,
-                    display_name: displayName.trim(),
                     phone: phone || null,
+                    email: user.email,
+                    role: 'mother',  // Default role
                 },
                 maternal: {
-                    due_date: dueDate || null,
-                    trimester: parseInt(trimester, 10),
-                    age: parseInt(age, 10),
-                    height_cm: parseFloat(heightCm),
-                    weight_kg: parseFloat(weightKg),
+                    personal: {
+                        age: parseInt(age, 10),
+                        height_cm: parseFloat(heightCm),
+                        weight_kg: parseFloat(weightKg),
+                        language: 'en',
+                    },
+                    pregnancy: {
+                        stage: trimesterMap[trimester] || 'trimester_1',
+                        expected_delivery_date: expectedDeliveryDate,
+                        gravida: 1,  // First pregnancy default
+                        para: 0,     // No previous deliveries default
+                        known_conditions: [],
+                        risk_level: 'low',
+                    },
+                    diet: {
+                        type: 'mixed',  // Default diet type
+                        allergies: [],
+                    },
                 },
                 consent: {
-                    data_collection: true,
-                    health_tracking: true,
-                    notifications: true,
+                    consents: {
+                        data_usage: true,
+                        medical_disclaimer: true,
+                    },
                 },
             });
 

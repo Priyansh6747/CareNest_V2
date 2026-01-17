@@ -23,6 +23,7 @@ export default function SymptomReport() {
 
     const [frequencies, setFrequencies] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [generatingSummary, setGeneratingSummary] = useState(false);
 
     const userId = user?.uid;
 
@@ -41,6 +42,25 @@ export default function SymptomReport() {
             console.log('Failed to load symptom frequencies');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleGenerateSummary = async () => {
+        if (!userId || generatingSummary) return;
+        
+        setGeneratingSummary(true);
+        try {
+            const summary = await MemoryAPI.getDoctorSummary(userId, { days: 30, format: 'json' });
+            // Navigate to summary view with the data
+            router.push({
+                pathname: '/doctor-summary',
+                params: { summary: JSON.stringify(summary) }
+            });
+        } catch (err) {
+            console.log('Failed to generate doctor summary:', err);
+            alert('Failed to generate doctor summary. Please try again.');
+        } finally {
+            setGeneratingSummary(false);
         }
     };
 
@@ -148,15 +168,25 @@ export default function SymptomReport() {
 
                     {/* Doctor Summary Button */}
                     {frequencies.length > 0 && (
-                        <TouchableOpacity style={styles.summaryButton}>
+                        <TouchableOpacity 
+                            style={styles.summaryButton}
+                            onPress={handleGenerateSummary}
+                            disabled={generatingSummary}
+                        >
                             <LinearGradient
-                                colors={[colors.neonPurple, colors.mutedLavender]}
+                                colors={generatingSummary ? [colors.dustyPurple, colors.lightOrchid] : [colors.neonPurple, colors.mutedLavender]}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }}
                                 style={styles.summaryButtonGradient}
                             >
-                                <Ionicons name="document-text" size={20} color={colors.white} />
-                                <Text style={styles.summaryButtonText}>Generate Doctor Summary</Text>
+                                <Ionicons 
+                                    name={generatingSummary ? "hourglass" : "document-text"} 
+                                    size={20} 
+                                    color={colors.white} 
+                                />
+                                <Text style={styles.summaryButtonText}>
+                                    {generatingSummary ? 'Generating...' : 'Generate Doctor Summary'}
+                                </Text>
                             </LinearGradient>
                         </TouchableOpacity>
                     )}

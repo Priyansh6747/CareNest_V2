@@ -1,9 +1,20 @@
 /**
  * CareNest API Service
  * Centralized API client for all backend endpoints
+ * 
+ * Synced with backend routers on 2026-01-17:
+ * - /nutrition (nutrition.py) - Meals, Water, Barcode
+ * - /water (nutrition.py) - Water logging
+ * - /symptoms (symptoms.py) - Symptom CRUD & Analysis
+ * - /insights (insights.py) - Nutrition insights with caching
+ * - /chat (chat.py) - RAG chatbot & history
+ * - /memory (memory.py) - SRS, Context Pyramid, Doctor Summary
+ * - /parser (parser.py) - PDF parsing & NER [DISABLED]
+ * - /user (user.py) - User onboarding
+ * - / (NearbyHospital.py) - Hospital finder
  */
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = 'http://10.156.65.50:8000';
 
 /**
  * Generic fetch wrapper with error handling
