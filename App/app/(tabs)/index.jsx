@@ -53,6 +53,13 @@ const FEATURES = [
         route: '/vacc-tracker',
         color: colors.success,
     },
+    {
+        id: 'food',
+        title: 'Healthy\nFood',
+        icon: 'nutrition',
+        route: '/food-outlets',
+        color: colors.warning,
+    },
 ];
 
 export default function Home() {

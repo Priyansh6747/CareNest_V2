@@ -415,6 +415,21 @@ export const HospitalAPI = {
 };
 
 // =============================================================================
+// Food Outlet API
+// =============================================================================
+
+export const FoodOutletAPI = {
+  findNearbyOutlets: ({ lat, lng, radius = 3000, limit = 10, category = 'all', priority_nutrients = null }) =>
+    request('/food/nearby-outlets', {
+      method: 'POST',
+      body: { lat, lng, radius, limit, category, priority_nutrients },
+    }),
+
+  getNutrientFoodTips: (nutrients) =>
+    request(`/food/nutrient-food-tips?nutrients=${encodeURIComponent(nutrients)}`),
+};
+
+// =============================================================================
 // Default Export - All APIs
 // =============================================================================
 
@@ -428,6 +443,7 @@ export default {
   Parser: ParserAPI,
   User: UserAPI,
   Hospital: HospitalAPI,
+  FoodOutlet: FoodOutletAPI,
   setBaseUrl: (url) => {
     // Allow runtime configuration
     Object.defineProperty(globalThis, 'CARENEST_API_URL', { value: url, writable: true });
