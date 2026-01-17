@@ -27,7 +27,7 @@ const FEATURES = [
     },
     {
         id: 'medicstone',
-        title: 'MedicStone',
+        title: 'Symptom Log',
         icon: 'medical',
         route: '/symptom-log',
         color: colors.softBlue,
@@ -54,11 +54,11 @@ const FEATURES = [
         color: colors.success,
     },
     {
-        id: 'food',
-        title: 'Healthy\nFood',
-        icon: 'nutrition',
-        route: '/food-outlets',
-        color: colors.warning,
+        id: 'diet-planner',
+        title: 'Diet\nPlanner',
+        icon: 'calendar',
+        route: '/diet-planner',
+        color: colors.neonPurple,
     },
 ];
 

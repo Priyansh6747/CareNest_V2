@@ -10,6 +10,7 @@ from routers.chat import router as chat_router
 from routers.symptoms import router as symptoms_router
 from routers.NearbyHospital import locRouter as hospital_router
 from routers.NearbyFoodOutlet import router as food_outlet_router
+from routers.MealPlanner import meal_router
 
 app = FastAPI()
 
@@ -23,6 +24,7 @@ app.include_router(chat_router)
 app.include_router(symptoms_router)
 app.include_router(hospital_router)
 app.include_router(food_outlet_router)
+app.include_router(meal_router)
 
 @app.get("/")
 def read_root():

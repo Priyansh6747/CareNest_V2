@@ -400,6 +400,10 @@ export const UserAPI = {
 
   completeOnboarding: (userId) =>
     request(`/user/onboarding/complete/${userId}`, { method: 'POST' }),
+
+  // Get user profile including dietary preferences
+  getProfile: (userId) =>
+    request(`/user/profile/${userId}`),
 };
 
 // =============================================================================
@@ -430,6 +434,46 @@ export const FoodOutletAPI = {
 };
 
 // =============================================================================
+// Meal Planner API
+// =============================================================================
+
+export const MealPlannerAPI = {
+  /**
+   * Generate a personalized meal plan using AI
+   * @param {Object} params - Meal plan parameters
+   * @param {number} params.age - User's age
+   * @param {string} params.pregnancy_stage - trimester_1, trimester_2, trimester_3, postpartum
+   * @param {string} params.diet_type - veg, non_veg, mixed
+   * @param {string[]} params.allergies - List of allergies
+   * @param {string[]} params.nutrient_focus - Priority nutrients
+   * @param {string[]} params.medical_conditions - Medical conditions
+   * @param {string} params.meal_duration - daily, weekly
+   * @param {string} params.cultural_preference - indian, etc.
+   */
+  generateMealPlan: (params) =>
+    request('/meal/generate', {
+      method: 'POST',
+      body: params,
+    }),
+
+  /**
+   * Get quick meal suggestions based on nutrients
+   * @param {Object} params - Suggestion parameters
+   * @param {string[]} params.nutrients - Nutrients to focus on
+   * @param {string} params.diet_type - Diet type
+   * @param {string} params.meal_type - breakfast, lunch, dinner, snack, any
+   */
+  getSuggestions: (params) =>
+    request('/meal/suggestions', {
+      method: 'POST',
+      body: params,
+    }),
+
+  // Health check
+  healthCheck: () => request('/meal/test'),
+};
+
+// =============================================================================
 // Default Export - All APIs
 // =============================================================================
 
@@ -444,6 +488,7 @@ export default {
   User: UserAPI,
   Hospital: HospitalAPI,
   FoodOutlet: FoodOutletAPI,
+  MealPlanner: MealPlannerAPI,
   setBaseUrl: (url) => {
     // Allow runtime configuration
     Object.defineProperty(globalThis, 'CARENEST_API_URL', { value: url, writable: true });
