@@ -78,9 +78,9 @@ export const UserProvider = ({ children }) => {
             logout,
 
             // Route Guards (Centralized logic)
-            canAccessTabs: isAuthenticated && isEmailVerified && hasDisplayName,
-            canAccessOnboarding: isAuthenticated && isEmailVerified && !hasDisplayName,
-            canAccessVerifyEmail: isAuthenticated && !isEmailVerified,
+            canAccessTabs: isAuthenticated && hasDisplayName,
+            canAccessOnboarding: isAuthenticated && !hasDisplayName,
+            canAccessVerifyEmail: false, // Disabled - email verification not required
             shouldShowSignin: !isAuthenticated && !isLoading,
         };
     }, [user, isLoading, refreshUser, getAccessToken, logout]);
