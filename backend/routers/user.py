@@ -131,61 +131,16 @@ async def get_user_profile(user_id: str):
     """
     from config import maternal_profiles_collection, users_collection
     
+    import logging
+    logger = logging.getLogger(__name__)
+
     try:
-        # Strategy 1: Try direct query with provided user_id
-        maternal_docs = list(
-            maternal_profiles_collection.where("user_id", "==", user_id).limit(1).stream()
-        )
-        
-        # Strategy 2: If not found, try to find user doc by Firebase UID
-        # The users collection might use Firebase UID as the document ID
-        if not maternal_docs:
-            try:
-                user_doc = users_collection.document(user_id).get()
-                if user_doc.exists:
-                    # Found user by document ID, try again with this ID
-                    firestore_user_id = user_doc.id
-                    maternal_docs = list(
-                        maternal_profiles_collection.where("user_id", "==", firestore_user_id).limit(1).stream()
-                    )
-            except Exception:
-                pass
-        
-        # Strategy 3: Check if maternal profile document ID matches user_id
-        if not maternal_docs:
-            try:
-                maternal_doc = maternal_profiles_collection.document(user_id).get()
-                if maternal_doc.exists:
-                    maternal_docs = [maternal_doc]
-            except Exception:
-                pass
-        
-        # Strategy 4: Search users by phone/email containing user_id pattern
-        if not maternal_docs:
-            user_query = list(users_collection.limit(50).stream())
-            for user_doc in user_query:
-                user_data = user_doc.to_dict()
-                # Check if there's a firebase_uid field or similar
-                if user_data.get("firebase_uid") == user_id or user_data.get("uid") == user_id:
-                    maternal_docs = list(
-                        maternal_profiles_collection.where("user_id", "==", user_doc.id).limit(1).stream()
-                    )
-                    if maternal_docs:
-                        break
-        
-        if not maternal_docs:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Profile not found for user: {user_id}. Please complete onboarding first."
-            )
-        
-        maternal = maternal_docs[0].to_dict() if hasattr(maternal_docs[0], 'to_dict') else maternal_docs[0]
-        maternal_id = maternal_docs[0].id if hasattr(maternal_docs[0], 'id') else user_id
+        profile_ref, profile_data = _get_maternal_profile_ref(user_id)
         
         # Extract key info for frontend
-        personal = maternal.get("personal", {})
-        pregnancy = maternal.get("pregnancy", {})
-        diet = maternal.get("diet", {})
+        personal = profile_data.get("personal", {})
+        pregnancy = profile_data.get("pregnancy", {})
+        diet = profile_data.get("diet", {})
         
         return {
             "user_id": user_id,
@@ -214,3 +169,131 @@ async def get_user_profile(user_id: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fetch user profile: {str(e)}"
         )
+
+
+def _get_maternal_profile_ref(user_id: str):
+    """
+    Helper to find the maternal profile document reference and data.
+    Returns (doc_ref, doc_data).
+    Raises HTTPException if not found.
+    """
+    from config import maternal_profiles_collection, users_collection
+    
+    # Strategy 1: Try direct query with provided user_id
+    maternal_docs = list(
+        maternal_profiles_collection.where("user_id", "==", user_id).limit(1).stream()
+    )
+    
+    # Strategy 2: If not found, try to find user doc by Firebase UID
+    if not maternal_docs:
+        try:
+            user_doc = users_collection.document(user_id).get()
+            if user_doc.exists:
+                firestore_user_id = user_doc.id
+                maternal_docs = list(
+                    maternal_profiles_collection.where("user_id", "==", firestore_user_id).limit(1).stream()
+                )
+        except Exception:
+            pass
+    
+    # Strategy 3: Check if maternal profile document ID matches user_id
+    if not maternal_docs:
+        try:
+            maternal_doc = maternal_profiles_collection.document(user_id).get()
+            if maternal_doc.exists:
+                maternal_docs = [maternal_doc]
+        except Exception:
+            pass
+    
+    # Strategy 4: Search users by phone/email containing user_id pattern
+    if not maternal_docs:
+        user_query = list(users_collection.limit(50).stream())
+        for user_doc in user_query:
+            user_data = user_doc.to_dict()
+            if user_data.get("firebase_uid") == user_id or user_data.get("uid") == user_id:
+                maternal_docs = list(
+                    maternal_profiles_collection.where("user_id", "==", user_doc.id).limit(1).stream()
+                )
+                if maternal_docs:
+                    break
+    
+    if not maternal_docs:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Profile not found for user: {user_id}"
+        )
+    
+    return maternal_docs[0].reference, maternal_docs[0].to_dict()
+
+
+# =============================================================================
+# Allergy Management Endpoints
+# =============================================================================
+
+@router.get(
+    "/allergies/{user_id}",
+    summary="Get user allergies",
+    description="Retrieve the list of allergies for a user.",
+)
+async def get_allergies(user_id: str):
+    """Get list of allergies for a user."""
+    try:
+        _, profile_data = _get_maternal_profile_ref(user_id)
+        diet = profile_data.get("diet", {})
+        return {"allergies": diet.get("allergies", [])}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post(
+    "/allergies/{user_id}",
+    summary="Add allergy",
+    description="Add an allergy to the user's profile.",
+)
+async def add_allergy(user_id: str, allergy_name: str):
+    """Add an allergy (prevents duplicates)."""
+    try:
+        doc_ref, profile_data = _get_maternal_profile_ref(user_id)
+        diet = profile_data.get("diet", {})
+        allergies = diet.get("allergies", [])
+        
+        clean_name = allergy_name.strip().title()
+        if clean_name not in allergies:
+            allergies.append(clean_name)
+            diet["allergies"] = allergies
+            doc_ref.update({"diet": diet})
+            
+        return {"allergies": allergies, "added": clean_name}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete(
+    "/allergies/{user_id}/{allergy_name}",
+    summary="Remove allergy",
+    description="Remove an allergy from the user's profile.",
+)
+async def remove_allergy(user_id: str, allergy_name: str):
+    """Remove an allergy."""
+    try:
+        doc_ref, profile_data = _get_maternal_profile_ref(user_id)
+        diet = profile_data.get("diet", {})
+        allergies = diet.get("allergies", [])
+        
+        # Case insensitive removal
+        original_len = len(allergies)
+        allergies = [a for a in allergies if a.lower() != allergy_name.lower().strip()]
+        
+        if len(allergies) != original_len:
+            diet["allergies"] = allergies
+            doc_ref.update({"diet": diet})
+            
+        return {"allergies": allergies, "removed": allergy_name}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

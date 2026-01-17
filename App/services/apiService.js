@@ -404,6 +404,15 @@ export const UserAPI = {
   // Get user profile including dietary preferences
   getProfile: (userId) =>
     request(`/user/profile/${userId}`),
+
+  getAllergies: (userId) =>
+    request(`/user/allergies/${userId}`),
+
+  addAllergy: (userId, allergyName) =>
+    request(`/user/allergies/${userId}?allergy_name=${allergyName}`, { method: 'POST' }),
+
+  deleteAllergy: (userId, allergyName) =>
+    request(`/user/allergies/${userId}/${allergyName}`, { method: 'DELETE' }),
 };
 
 // =============================================================================

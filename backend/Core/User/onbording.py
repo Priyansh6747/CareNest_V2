@@ -52,10 +52,14 @@ async def init_onboarding(request: OnboardingInitRequest) -> OnboardingInitRespo
     
     if existing_user:
         # Update existing user data
-        users_collection.document(user_id).update({
+        update_data = {
             "email": request.user.email,
             "role": request.user.role.value,
-        })
+        }
+        if request.user.firebase_uid:
+            update_data["firebase_uid"] = request.user.firebase_uid
+            
+        users_collection.document(user_id).update(update_data)
     else:
         # Create new user
         user_doc = {
@@ -64,6 +68,9 @@ async def init_onboarding(request: OnboardingInitRequest) -> OnboardingInitRespo
             "role": request.user.role.value,
             "created_at": datetime.now(timezone.utc),
         }
+        if request.user.firebase_uid:
+            user_doc["firebase_uid"] = request.user.firebase_uid
+            
         _, user_ref = users_collection.add(user_doc)
         user_id = user_ref.id
     

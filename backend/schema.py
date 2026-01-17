@@ -56,6 +56,7 @@ class FeedingType(str, Enum):
 #Models
 class User(BaseMongoModel):
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
+    firebase_uid: Optional[str] = None
     phone: Optional[str] = Field(..., pattern=r"^\+?1?\d{9,15}$")
     email: Optional[str] = None
     role: UserRole
@@ -134,6 +135,7 @@ class UserConsent(BaseMongoModel):
 
 class UserCreate(BaseModel):
     """Client input for creating a User"""
+    firebase_uid: Optional[str] = None
     phone: Optional[str] = Field(None, pattern=r"^\+?1?\d{9,15}$")
     email: Optional[str] = None
     role: UserRole = UserRole.mother
