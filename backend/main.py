@@ -7,6 +7,7 @@ from routers.parser import router as parser_router
 from routers.insights import router as insights_router
 from routers.memory import router as memory_router
 from routers.chat import router as chat_router
+from routers.symptoms import router as symptoms_router
 
 app = FastAPI()
 
@@ -17,6 +18,7 @@ app.include_router(parser_router)
 app.include_router(insights_router)
 app.include_router(memory_router)
 app.include_router(chat_router)
+app.include_router(symptoms_router)
 
 @app.get("/")
 def read_root():

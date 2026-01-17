@@ -1,0 +1,130 @@
+### Symptom Reporting API Tests
+### Use these with VS Code REST Client extension
+
+@baseUrl = http://127.0.0.1:8000
+@userId = MbG3wwDSH1o5lqQYoFG1
+
+# =============================================================================
+# Report Symptoms (Create)
+# =============================================================================
+
+### Report a basic symptom
+POST {{baseUrl}}/symptoms/{{userId}}
+Content-Type: application/json
+
+{
+  "symptom_name": "headache",
+  "severity": 3,
+  "description": "Mild headache in the morning"
+}
+
+###
+
+### Report symptom with context
+POST {{baseUrl}}/symptoms/{{userId}}
+Content-Type: application/json
+
+{
+  "symptom_name": "fatigue",
+  "severity": 4,
+  "description": "Feeling very tired after lunch",
+  "context": {
+    "sleep_hours": 6.5,
+    "stress_level": 4,
+    "notes": "Had a busy morning"
+  }
+}
+
+###
+
+### Report a high-severity symptom
+POST {{baseUrl}}/symptoms/{{userId}}
+Content-Type: application/json
+
+{
+  "symptom_name": "nausea",
+  "severity": 4,
+  "description": "Morning sickness"
+}
+
+###
+
+# =============================================================================
+# Get Symptoms (Read)
+# =============================================================================
+
+### Get recent symptoms (last 7 days)
+GET {{baseUrl}}/symptoms/{{userId}}
+
+###
+
+### Get symptoms from last 30 days
+GET {{baseUrl}}/symptoms/{{userId}}?days=30&limit=20
+
+###
+
+### Get a specific symptom by ID
+# Replace {stone_id} with actual ID from create response
+GET {{baseUrl}}/symptoms/{{userId}}/{stone_id}
+
+###
+
+### Get symptoms by date range
+GET {{baseUrl}}/symptoms/{{userId}}/range?start_date=2026-01-01T00:00:00Z&end_date=2026-01-31T23:59:59Z
+
+###
+
+### Get symptoms by date range filtered by name
+GET {{baseUrl}}/symptoms/{{userId}}/range?start_date=2026-01-01T00:00:00Z&end_date=2026-01-31T23:59:59Z&symptom_name=headache
+
+###
+
+# =============================================================================
+# Update Symptoms
+# =============================================================================
+
+### Update symptom severity
+# Replace {stone_id} with actual ID
+PATCH {{baseUrl}}/symptoms/{{userId}}/{stone_id}
+Content-Type: application/json
+
+{
+  "severity": 2,
+  "description": "Feeling better now"
+}
+
+###
+
+# =============================================================================
+# Symptom Analysis
+# =============================================================================
+
+### Get all symptom frequencies (last 30 days)
+GET {{baseUrl}}/symptoms/{{userId}}/analysis/all
+
+###
+
+### Get all symptom frequencies (last 7 days)
+GET {{baseUrl}}/symptoms/{{userId}}/analysis/all?days=7
+
+###
+
+### Analyze specific symptom
+GET {{baseUrl}}/symptoms/{{userId}}/analysis/headache
+
+###
+
+### Analyze specific symptom (longer period)
+GET {{baseUrl}}/symptoms/{{userId}}/analysis/fatigue?days=60
+
+###
+
+# =============================================================================
+# Delete Symptoms
+# =============================================================================
+
+### Delete a symptom
+# Replace {stone_id} with actual ID
+DELETE {{baseUrl}}/symptoms/{{userId}}/{stone_id}
+
+###
