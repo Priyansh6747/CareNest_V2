@@ -58,6 +58,10 @@ class MealPlanRequest(BaseModel):
         default="indian",
         description="Cultural food preference"
     )
+    region: Optional[str] = Field(
+        default=None,
+        description="Specific region or area (e.g., South India, Punjab)"
+    )
 
 
 class QuickSuggestionRequest(BaseModel):
@@ -90,6 +94,9 @@ def build_meal_query(request: MealPlanRequest) -> str:
     
     parts.append(f"Cultural preference: {request.cultural_preference}")
     
+    if request.region:
+        parts.append(f"Region: {request.region}")
+    
     return ". ".join(parts)
 
 
@@ -106,7 +113,9 @@ USER PROFILE:
 - Nutrient priorities: {', '.join(request.nutrient_focus) if request.nutrient_focus else 'General balanced nutrition'}
 - Medical conditions: {', '.join(request.medical_conditions) if request.medical_conditions else 'None'}
 - Duration: {request.meal_duration}
+- Duration: {request.meal_duration}
 - Cultural preference: {request.cultural_preference}
+- Specific Region/Area: {request.region if request.region else 'General'}
 
 NUTRITION KNOWLEDGE BASE:
 {context}
