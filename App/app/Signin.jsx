@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
-import BottomSheet from '../Components/BottomSheet';
+import BottomSheet from '../components/BottomSheet';
 
 export default function Signin() {
     const [status, setStatus] = useState(false);

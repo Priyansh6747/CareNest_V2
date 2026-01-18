@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 
 import { useUser } from '../hooks/auth_context';
 import Card from '../components/Card';
+import Input from '../components/Input';
 import { colors, gradients, typography, spacing, borderRadius, shadows } from '../theme';
 import { MealPlannerAPI, UserAPI, InsightsAPI } from '../services/apiService';
 
@@ -58,6 +59,7 @@ export default function DietPlanner() {
     const [selectedAllergies, setSelectedAllergies] = useState([]);
     const [nutrientFocus, setNutrientFocus] = useState([]);
     const [duration, setDuration] = useState('daily');
+    const [region, setRegion] = useState('');
 
     // UI state
     const [loading, setLoading] = useState(false);
@@ -124,6 +126,7 @@ export default function DietPlanner() {
                 medical_conditions: [],
                 meal_duration: duration,
                 cultural_preference: 'indian',
+                region: region.trim() || null,
             });
 
             if (result.success) {
@@ -236,6 +239,16 @@ export default function DietPlanner() {
                     </View>
                 </>
             )}
+
+            {/* Region Input */}
+            <View style={{ marginTop: spacing.md }}>
+                <Input
+                    label="Specific Region / Area (Optional)"
+                    placeholder="e.g. South India, Punjab, Kerala"
+                    value={region}
+                    onChangeText={setRegion}
+                />
+            </View>
 
             {/* Generate Button */}
             <TouchableOpacity
