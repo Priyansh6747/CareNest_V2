@@ -295,7 +295,6 @@ response = await engine.chat(
 | **LLM Providers** | Groq (LLaMA 3.3 70B), Google Gemini |
 | **Forecasting** | Amazon Chronos-Bolt (AutoGluon) |
 | **Auth** | Firebase Authentication |
-| **Deployment** | Render (backend), Expo EAS (mobile) |
 
 ---
 
