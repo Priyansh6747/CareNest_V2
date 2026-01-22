@@ -299,14 +299,147 @@ response = await engine.chat(
 
 ---
 
-## 🔐 Environment Variables
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Python 3.10+** with `pip`
+- **Node.js 18+** with `npm`
+- **Firebase Project** with Firestore enabled
+- **API Keys**: Gemini API (Google AI Studio), Groq API
+
+---
+
+### 1️⃣ Backend Setup
+
+```bash
+# Navigate to backend
+cd backend
+
+# Create virtual environment
+python -m venv venv
+
+# Activate venv
+# Linux/macOS:
+source venv/bin/activate
+# Windows:
+venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+**Configure Environment:**
+
+```bash
+# Copy example env file
+cp .env.example .env
+
+# Edit .env with your values
+nano .env  # or use any editor
+```
 
 ```bash
 # backend/.env
-GOOGLE_API_KEY=           # Gemini API
-GROQ_API_KEY=             # Groq API
-FIREBASE_CREDENTIALS=     # Path to service account JSON
-OVERPASS_API_URL=         # For hospital/outlet search (optional)
+GOOGLE_API_KEY=your_gemini_api_key
+GROQ_API_KEY=your_groq_api_key
+FIREBASE_CREDENTIALS=./firebase-service-account.json
+```
+
+**Add Firebase Credentials:**
+
+1. Go to [Firebase Console](https://console.firebase.google.com/) → Project Settings → Service Accounts
+2. Click **"Generate new private key"**
+3. Save the JSON file as `backend/firebase-service-account.json`
+
+**Bind to Your IPv4 Address:**
+
+Find your local IPv4:
+```bash
+# Linux
+ip addr | grep "inet " | grep -v 127.0.0.1
+
+# macOS
+ipconfig getifaddr en0
+
+# Windows
+ipconfig | findstr IPv4
+```
+
+Edit `backend/main.py` and set your IPv4:
+```python
+if __name__ == "__main__":
+    uvicorn.run(app, host="YOUR_IPV4_ADDRESS", port=8000)
+    # Example: uvicorn.run(app, host="192.168.1.100", port=8000)
+```
+
+**Start the Server:**
+
+```bash
+python main.py
+# Server runs at http://YOUR_IPV4:8000
+```
+
+---
+
+### 2️⃣ Frontend Setup
+
+```bash
+# Navigate to App
+cd App
+
+# Install dependencies
+npm install
+
+# Or with Expo
+npx expo install
+```
+
+**Configure Server URL:**
+
+Edit `App/services/apiService.js` and set `BASE_URL` to your backend:
+
+```javascript
+// Line 17 - Update to your backend IPv4
+const BASE_URL = 'http://YOUR_IPV4_ADDRESS:8000';
+// Example: const BASE_URL = 'http://192.168.1.100:8000';
+```
+
+**Launch the App:**
+
+```bash
+# Start Expo dev server
+npx expo start
+
+# Scan QR code with Expo Go app (iOS/Android)
+# Or press 'a' for Android emulator, 'i' for iOS simulator
+```
+
+---
+
+### 📱 Quick Start Summary
+
+| Step | Command | Location |
+|------|---------|----------|
+| 1. Setup venv | `python -m venv venv && source venv/bin/activate` | `backend/` |
+| 2. Install deps | `pip install -r requirements.txt` | `backend/` |
+| 3. Configure env | `cp .env.example .env` + add Firebase JSON | `backend/` |
+| 4. Set IPv4 | Edit `host` in `main.py` | `backend/main.py` |
+| 5. Start backend | `python main.py` | `backend/` |
+| 6. Install frontend | `npm install` | `App/` |
+| 7. Set API URL | Edit `BASE_URL` in `apiService.js` | `App/services/` |
+| 8. Launch app | `npx expo start` | `App/` |
+
+---
+
+## 🔐 Environment Variables Reference
+
+```bash
+# backend/.env.example
+GOOGLE_API_KEY=           # Gemini API key (Google AI Studio)
+GROQ_API_KEY=             # Groq API key (console.groq.com)
+FIREBASE_CREDENTIALS=     # Path to Firebase service account JSON
+OVERPASS_API_URL=         # Optional: for hospital/outlet search
 ```
 
 ---
