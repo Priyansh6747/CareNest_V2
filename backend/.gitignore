@@ -2,3 +2,7 @@
 .idea
 /serviceAccountKey.json
 /.env
+config.py
+*.__pycache__
+*.pyc
+
