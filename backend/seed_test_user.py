@@ -1,22 +1,25 @@
 """
 seed_test_user.py - Populate a demo account with 30 days of data
 
-Creates (or reuses) the Firebase Auth user, links the backend user document,
-then writes 30 days of meals, water logs and symptoms so every feature
-(dashboard insights, logs, symptom report, doctor summary) has data.
+Writes 30 days of meals, water logs and symptoms so every feature (dashboard
+insights, logs, symptom report, doctor summary) has data.
+
+IMPORTANT: the web app authenticates against its own Firebase project, so the
+UID it sends to this API is NOT one this backend's admin SDK knows about. We
+therefore seed under the `firebase_uid` already stored on the user document
+(which /user/link-account backfills on login), not a UID we invent here.
 
 Usage:
     cd backend && uv run python seed_test_user.py
+    cd backend && uv run python seed_test_user.py --uid <firebase-uid>
 """
 
+import argparse
 import random
 import sys
 from datetime import datetime, timedelta, timezone
 
-from firebase_admin import auth as fb_auth
-
 from config import (
-    baby_profiles_collection,
     firestoreDB,
     maternal_profiles_collection,
     onboarding_status_collection,
@@ -25,7 +28,6 @@ from config import (
 )
 
 EMAIL = "test@testuser.com"
-PASSWORD = "qwertyu"
 DISPLAY_NAME = "Priya Sharma"
 PHONE = "+919876543210"
 DAYS = 30
@@ -90,47 +92,51 @@ CONTEXTS = [
 ]
 
 
-def get_or_create_auth_user() -> str:
-    """Return the Firebase Auth UID for the demo account."""
-    try:
-        user = fb_auth.get_user_by_email(EMAIL)
-        fb_auth.update_user(user.uid, password=PASSWORD, display_name=DISPLAY_NAME)
-        print(f"  auth user exists : {user.uid}")
-        return user.uid
-    except fb_auth.UserNotFoundError:
-        user = fb_auth.create_user(
-            email=EMAIL,
-            password=PASSWORD,
-            display_name=DISPLAY_NAME,
-            email_verified=True,
+def resolve_uid(explicit_uid: str | None) -> tuple[str, str]:
+    """
+    Return (firebase_uid, user_doc_id) for the demo account.
+
+    The UID must be the one the web client uses, which is stored on the user
+    document by /user/link-account at login.
+    """
+    if explicit_uid:
+        uid = explicit_uid
+    else:
+        matches = list(users_collection.where("email", "==", EMAIL).limit(1).stream())
+        if not matches:
+            raise SystemExit(
+                f"No user document found for {EMAIL}.\n"
+                "Log in to the web app once so /user/link-account creates it, "
+                "then re-run this script (or pass --uid)."
+            )
+        doc = matches[0]
+        uid = (doc.to_dict() or {}).get("firebase_uid")
+        if not uid:
+            raise SystemExit(
+                f"User document {doc.id} has no firebase_uid yet.\n"
+                "Log in to the web app once to backfill it, then re-run."
+            )
+
+    existing = list(users_collection.where("firebase_uid", "==", uid).limit(1).stream())
+    if existing:
+        doc_id = existing[0].id
+        users_collection.document(doc_id).set(
+            {"email": EMAIL, "phone": PHONE, "role": "mother", "firebase_uid": uid},
+            merge=True,
         )
-        print(f"  auth user created: {user.uid}")
-        return user.uid
-
-
-def upsert_user(firebase_uid: str) -> str:
-    """Create or update the users/{doc} document; return its document id."""
-    existing = list(users_collection.where("firebase_uid", "==", firebase_uid).limit(1).stream())
-    if not existing:
-        existing = list(users_collection.where("email", "==", EMAIL).limit(1).stream())
+        print(f"  user doc        : {doc_id} (updated)")
+        return uid, doc_id
 
     payload = {
         "email": EMAIL,
         "phone": PHONE,
         "role": "mother",
-        "firebase_uid": firebase_uid,
+        "firebase_uid": uid,
+        "created_at": datetime.now(timezone.utc),
     }
-
-    if existing:
-        doc = existing[0]
-        users_collection.document(doc.id).set(payload, merge=True)
-        print(f"  user doc updated : {doc.id}")
-        return doc.id
-
-    payload["created_at"] = datetime.now(timezone.utc)
     _, ref = users_collection.add(payload)
-    print(f"  user doc created : {ref.id}")
-    return ref.id
+    print(f"  user doc        : {ref.id} (created)")
+    return uid, ref.id
 
 
 def upsert_maternal_profile(user_doc_id: str):
@@ -313,25 +319,33 @@ def seed_symptoms(user_id: str):
 
 
 def main():
-    print("\nSeeding CareNest demo account")
-    print("=" * 46)
+    parser = argparse.ArgumentParser(description="Seed the CareNest demo account")
+    parser.add_argument(
+        "--uid",
+        default=None,
+        help="Firebase UID used by the web client (defaults to the user doc's firebase_uid)",
+    )
+    args = parser.parse_args()
 
-    firebase_uid = get_or_create_auth_user()
-    user_doc_id = upsert_user(firebase_uid)
+    print("\nSeeding CareNest demo account")
+    print("=" * 52)
+
+    firebase_uid, user_doc_id = resolve_uid(args.uid)
     upsert_maternal_profile(user_doc_id)
     upsert_consent_and_status(user_doc_id)
 
     # Meals/water/symptoms are stored under the *Firebase UID* because that is
-    # what the web client sends on every request.
+    # what the web client sends on every request. Insights are cleared so they
+    # regenerate from the fresh data.
     clear_existing(firebase_uid)
     seed_meals(firebase_uid)
     seed_water(firebase_uid)
     seed_symptoms(firebase_uid)
 
-    print("=" * 46)
-    print(f"Login    : {EMAIL}")
-    print(f"Password : {PASSWORD}")
-    print(f"UID      : {firebase_uid}")
+    print("=" * 52)
+    print(f"Login : {EMAIL}")
+    print(f"UID   : {firebase_uid}")
+    print(f"Doc   : {user_doc_id}")
     print("Done.\n")
 
 
