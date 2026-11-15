@@ -16,6 +16,8 @@ APP_DIR="$ROOT_DIR/App"
 
 BACKEND_PORT=""
 FRONTEND_PORT=""
+API_PREFIX=""
+API_PREFIX_SET=0
 BACKEND_HOST="0.0.0.0"
 BACKEND_PID=""
 
@@ -37,25 +39,30 @@ die()   { printf '%serror%s %s\n' "$C_RED" "$C_RESET" "$*" >&2; exit 1; }
 
 usage() {
     cat <<EOF
-${C_BOLD}Usage:${C_RESET} ./start.sh -b <backend-port> -f <frontend-port>
+${C_BOLD}Usage:${C_RESET} ./start.sh -b <backend-port> -f <frontend-port> [-p <api-prefix>]
 
-  -b <port>   Port for the FastAPI backend  (default: 8000)
-  -f <port>   Port for the web frontend    (default: 8081)
-  -h          Show this help
+  -b <port>     Port for the FastAPI backend  (default: 8000)
+  -f <port>     Port for the web frontend    (default: 8081)
+  -p <prefix>   Public path prefix the API is served under, e.g. /api
+                (default: none — the web app calls host:port directly).
+                You will be prompted when this is omitted.
+
+  -h            Show this help
 
 Examples:
   ./start.sh -b 8000 -f 8081
-  ./start.sh -b 9000 -f 3000
+  ./start.sh -b 8000 -f 3000 -p /api     # behind nginx /api -> backend
 EOF
 }
 
 # ---------------------------------------------------------------------------
 # Argument parsing
 # ---------------------------------------------------------------------------
-while getopts ":b:f:h" opt; do
+while getopts ":b:f:p:h" opt; do
     case "$opt" in
         b) BACKEND_PORT="$OPTARG" ;;
         f) FRONTEND_PORT="$OPTARG" ;;
+        p) API_PREFIX="$OPTARG"; API_PREFIX_SET=1 ;;
         h) usage; exit 0 ;;
         :) die "option -$OPTARG requires a value" ;;
         \?) die "unknown option -$OPTARG (use -h for help)" ;;
@@ -78,6 +85,40 @@ validate_port "frontend port (-f)" "$FRONTEND_PORT"
 
 [ "$BACKEND_PORT" != "$FRONTEND_PORT" ] \
     || die "backend and frontend ports must differ (both are $BACKEND_PORT)"
+
+# ---------------------------------------------------------------------------
+# API path prefix (for reverse proxies such as nginx `location /api/`)
+# ---------------------------------------------------------------------------
+normalise_prefix() {
+    local p="$1"
+    p="$(printf '%s' "$p" | tr -d '[:space:]')"
+    case "$p" in
+        ""|"/"|none|NONE|None) printf '' ; return ;;
+    esac
+    case "$p" in
+        /*) ;;
+        *) p="/$p" ;;
+    esac
+    printf '%s' "${p%/}"
+}
+
+# Ask when not supplied and we have a terminal; otherwise default to none.
+if [ "$API_PREFIX_SET" -eq 0 ]; then
+    if [ -t 0 ]; then
+        printf '%s' "API path prefix for the web app (e.g. /api, blank for none): "
+        read -r API_PREFIX_INPUT || API_PREFIX_INPUT=""
+        API_PREFIX="$API_PREFIX_INPUT"
+    else
+        API_PREFIX=""
+    fi
+fi
+
+API_PREFIX="$(normalise_prefix "$API_PREFIX")"
+if [ -n "$API_PREFIX" ]; then
+    ok "API will be served under the prefix: $API_PREFIX"
+else
+    ok "API path prefix: none (web app calls the backend port directly)"
+fi
 
 port_in_use() {
     local port="$1"
@@ -203,9 +244,12 @@ step "Starting backend on port $BACKEND_PORT"
 BACKEND_LOG="$ROOT_DIR/.backend.log"
 (
     cd "$BACKEND_DIR"
+    # API_PREFIX keeps docs/redirects correct when served behind a proxy path.
+    export API_PREFIX
     exec uv run uvicorn main:app \
         --host "$BACKEND_HOST" \
         --port "$BACKEND_PORT" \
+        --root-path "$API_PREFIX" \
         --log-level info
 ) >"$BACKEND_LOG" 2>&1 &
 BACKEND_PID=$!
@@ -256,11 +300,27 @@ fi
 ok "node_modules present"
 
 # ---------------------------------------------------------------------------
-# Frontend: build with the backend port injected
+# Frontend: build with the backend port/prefix injected
 # ---------------------------------------------------------------------------
-step "Building web bundle (API port $BACKEND_PORT)"
+if [ -n "$API_PREFIX" ]; then
+    step "Building web bundle (API via $API_PREFIX)"
+else
+    step "Building web bundle (API port $BACKEND_PORT)"
+fi
 
-( cd "$APP_DIR" && EXPO_PUBLIC_API_PORT="$BACKEND_PORT" npx expo export --platform web --output-dir dist )
+(
+    cd "$APP_DIR"
+    # --clear matters: these values are inlined into the bundle at build time
+    # and Metro caches transforms, so without it a rebuild can keep a stale
+    # port/prefix from a previous run.
+    if [ -n "$API_PREFIX" ]; then
+        EXPO_PUBLIC_API_PREFIX="$API_PREFIX" \
+            npx expo export --platform web --output-dir dist --clear
+    else
+        EXPO_PUBLIC_API_PORT="$BACKEND_PORT" \
+            npx expo export --platform web --output-dir dist --clear
+    fi
+)
 [ -f "$APP_DIR/dist/index.html" ] || die "web build did not produce dist/index.html"
 ok "web build complete"
 
@@ -269,13 +329,23 @@ ok "web build complete"
 # ---------------------------------------------------------------------------
 step "Serving frontend on port $FRONTEND_PORT"
 
+if [ -n "$API_PREFIX" ]; then
+    API_PUBLIC_URL="http://localhost:$FRONTEND_PORT$API_PREFIX"
+    DOCS_PUBLIC_URL="http://localhost:$BACKEND_PORT/docs"
+else
+    API_PUBLIC_URL="http://localhost:$BACKEND_PORT"
+    DOCS_PUBLIC_URL="http://localhost:$BACKEND_PORT/docs"
+fi
+
 printf '%s\n' \
     "" \
     "  ${C_BOLD}CareNest is running${C_RESET}" \
     "" \
     "  Frontend   http://localhost:$FRONTEND_PORT" \
     "  Backend    http://localhost:$BACKEND_PORT" \
-    "  API docs   http://localhost:$BACKEND_PORT/docs" \
+    "  API path   ${API_PREFIX:-/ (no prefix)}" \
+    "  API base   $API_PUBLIC_URL" \
+    "  API docs   $DOCS_PUBLIC_URL" \
     "" \
     "  Press Ctrl-C to stop both servers." \
     ""

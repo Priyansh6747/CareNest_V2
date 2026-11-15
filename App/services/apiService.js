@@ -16,10 +16,26 @@
 
 const DEFAULT_PORT = 8000;
 
+/** Normalise "/api/", "api" and "" to "/api" / "" respectively. */
+function normalizePrefix(raw) {
+  if (!raw) return '';
+  let prefix = String(raw).trim();
+  if (!prefix || prefix === '/' || prefix.toLowerCase() === 'none') return '';
+  if (!prefix.startsWith('/')) prefix = `/${prefix}`;
+  return prefix.replace(/\/+$/, '');
+}
+
 function resolveBaseUrl() {
   // Full URL override wins (set EXPO_PUBLIC_API_URL at build/run time).
   const fromEnv = process.env.EXPO_PUBLIC_API_URL;
   if (fromEnv) return fromEnv.replace(/\/$/, '');
+
+  // When a reverse proxy exposes the API under a path prefix (e.g. /api),
+  // talk to the same origin and let nginx route it. No port in this mode.
+  const prefix = normalizePrefix(process.env.EXPO_PUBLIC_API_PREFIX);
+  if (prefix && typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}${prefix}`;
+  }
 
   // Otherwise inject just the port and keep the host the browser is already
   // on, so the app works from localhost and from a phone on the LAN alike.
