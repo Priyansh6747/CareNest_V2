@@ -1,8 +1,23 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
+import {
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    TextInput,
+    ScrollView,
+    StatusBar,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+
 import { auth } from '../firebaseConfig';
+import { showAlert } from '../utils/alert';
+import useResponsive from '../hooks/useResponsive';
 import BottomSheet from '../components/BottomSheet';
+import { colors, gradients, typography, spacing, borderRadius, shadows } from '../theme';
 
 export default function Signin() {
     const [status, setStatus] = useState(false);
@@ -10,9 +25,12 @@ export default function Signin() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
+    const insets = useSafeAreaInsets();
+    const { pagePadding, cardMaxWidth } = useResponsive();
+
     const handleLogin = async () => {
         if (email === '' || password === '') {
-            Alert.alert('Error', 'Password and email are required');
+            showAlert('Error', 'Password and email are required');
             return;
         }
 
@@ -28,8 +46,6 @@ export default function Signin() {
                 emailVerified: user.emailVerified,
                 displayName: user.displayName
             });
-
-
         } catch (error) {
             console.log('Authentication failed!');
             console.log('Failed email:', email);
@@ -59,117 +75,183 @@ export default function Signin() {
                     break;
             }
 
-            console.log('💬 User message:', userMessage);
-            Alert.alert('Login Failed', userMessage);
+            showAlert('Login Failed', userMessage);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Login Here</Text>
-
-            <View style={styles.inputContainer}>
-                <TextInput
-                    placeholder="Enter Email"
-                    style={styles.input}
-                    onChangeText={setEmail}
-                    value={email}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    editable={!loading}
-                />
-
-                <TextInput
-                    placeholder="Enter Password"
-                    style={styles.input}
-                    secureTextEntry={true}
-                    onChangeText={setPassword}
-                    value={password}
-                    editable={!loading}
-                />
-            </View>
-
-            <TouchableOpacity
-                onPress={handleLogin}
-                style={[styles.button, loading && styles.buttonDisabled]}
-                disabled={loading}
+        <LinearGradient colors={gradients.background} style={styles.container}>
+            <StatusBar barStyle="dark-content" />
+            <ScrollView
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    {
+                        paddingTop: insets.top + spacing.xl,
+                        paddingBottom: insets.bottom + spacing.xl,
+                        paddingHorizontal: pagePadding,
+                    },
+                ]}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
             >
-                <Text style={styles.buttonText}>
-                    {loading ? 'Signing In...' : 'Login'}
-                </Text>
-            </TouchableOpacity>
+                <View style={[styles.card, cardMaxWidth ? { maxWidth: cardMaxWidth } : null]}>
+                    <View style={styles.logoWrap}>
+                        <LinearGradient
+                            colors={[colors.neonPurple, colors.mutedLavender]}
+                            style={styles.logo}
+                        >
+                            <Ionicons name="heart" size={34} color={colors.white} />
+                        </LinearGradient>
+                        <Text style={styles.brand}>CareNest</Text>
+                        <Text style={styles.tagline}>Your pregnancy companion</Text>
+                    </View>
 
-            <TouchableOpacity
-                onPress={() => setStatus(true)}
-                disabled={loading}
-            >
-                <Text style={styles.createAccountText}>Create Account</Text>
-            </TouchableOpacity>
+                    <Text style={styles.title}>Welcome back</Text>
+
+                    <View style={styles.inputContainer}>
+                        <Text style={styles.label}>Email</Text>
+                        <TextInput
+                            placeholder="you@example.com"
+                            placeholderTextColor={colors.dustyPurple}
+                            style={styles.input}
+                            onChangeText={setEmail}
+                            value={email}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            autoComplete="email"
+                            editable={!loading}
+                        />
+
+                        <Text style={styles.label}>Password</Text>
+                        <TextInput
+                            placeholder="Your password"
+                            placeholderTextColor={colors.dustyPurple}
+                            style={styles.input}
+                            secureTextEntry
+                            onChangeText={setPassword}
+                            value={password}
+                            editable={!loading}
+                            onSubmitEditing={handleLogin}
+                        />
+                    </View>
+
+                    <TouchableOpacity
+                        onPress={handleLogin}
+                        style={[styles.buttonWrap, loading && styles.buttonDisabled]}
+                        disabled={loading}
+                        activeOpacity={0.85}
+                    >
+                        <LinearGradient
+                            colors={[colors.neonPurple, colors.mutedLavender]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.button}
+                        >
+                            <Text style={styles.buttonText}>
+                                {loading ? 'Signing In…' : 'Login'}
+                            </Text>
+                        </LinearGradient>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        onPress={() => setStatus(true)}
+                        disabled={loading}
+                        style={styles.createAccountWrap}
+                    >
+                        <Text style={styles.createAccountText}>Create Account</Text>
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>
 
             {status && <BottomSheet setStatus={setStatus} />}
-        </View>
+        </LinearGradient>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    scrollContent: {
+        flexGrow: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#f3e8ff' // Light lavender/purple background
+    },
+    card: {
+        width: '100%',
+    },
+    logoWrap: {
+        alignItems: 'center',
+        marginBottom: spacing.xl,
+    },
+    logo: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: spacing.md,
+        ...shadows.glow,
+    },
+    brand: {
+        ...typography.h1,
+        color: colors.inkPurple,
+    },
+    tagline: {
+        ...typography.bodySmall,
+        color: colors.mutedPurple,
+        marginTop: spacing.xs,
     },
     title: {
-        fontSize: 25,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        color: '#581c87' // Deep purple
+        ...typography.h2,
+        marginBottom: spacing.lg,
     },
     inputContainer: {
-        marginTop: 20,
         width: '100%',
-        paddingHorizontal: 25
+    },
+    label: {
+        ...typography.bodySmall,
+        fontWeight: '600',
+        color: colors.inkPurple,
+        marginBottom: spacing.xs,
     },
     input: {
         borderWidth: 1,
-        borderColor: '#e9d5ff', // Light purple border
-        padding: 12,
-        marginBottom: 15,
-        borderRadius: 8,
-        backgroundColor: 'white',
-        fontSize: 16
+        borderColor: colors.lightOrchid,
+        padding: spacing.md,
+        marginBottom: spacing.md,
+        borderRadius: borderRadius.md,
+        backgroundColor: 'rgba(254, 253, 254, 0.9)',
+        fontSize: 16,
+        color: colors.inkPurple,
+    },
+    buttonWrap: {
+        marginTop: spacing.md,
     },
     button: {
-        backgroundColor: '#a855f7', // Medium-light purple
-        padding: 15,
-        borderRadius: 8,
+        paddingVertical: spacing.md,
+        borderRadius: borderRadius.md,
         alignItems: 'center',
-        marginTop: 10,
-        marginBottom: 20,
-        width: '90%',
-        shadowColor: '#a855f7',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        elevation: 4,
+        ...shadows.glow,
     },
     buttonDisabled: {
-        backgroundColor: '#d8b4fe', // Lighter disabled purple
-        shadowOpacity: 0,
-        elevation: 0,
+        opacity: 0.6,
     },
     buttonText: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: 'white'
+        fontSize: 17,
+        fontWeight: '700',
+        color: colors.white,
+    },
+    createAccountWrap: {
+        marginTop: spacing.lg,
+        alignItems: 'center',
+        paddingVertical: spacing.sm,
     },
     createAccountText: {
-        color: '#9333ea', // Vibrant purple
+        color: colors.neonPurple,
         fontSize: 16,
-        fontWeight: '600'
-    }
+        fontWeight: '600',
+    },
 });

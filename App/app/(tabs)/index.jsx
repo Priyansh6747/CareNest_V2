@@ -5,14 +5,15 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    SafeAreaView,
     StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useUser } from '../../hooks/auth_context';
+import useResponsive from '../../hooks/useResponsive';
 import Card from '../../components/Card';
 import { colors, gradients, typography, spacing, borderRadius, shadows, glassmorphism } from '../../theme';
 import { InsightsAPI } from '../../services/apiService';
@@ -65,11 +66,18 @@ const FEATURES = [
 export default function Home() {
     const router = useRouter();
     const { user } = useUser();
+    const insets = useSafeAreaInsets();
+    const { isDesktop, isTablet, maxContentWidth, pagePadding, width } = useResponsive();
     const [insights, setInsights] = useState(null);
     const [insightsLoading, setInsightsLoading] = useState(false);
 
     const displayName = user?.displayName || 'there';
     const userId = user?.uid;
+
+    // Feature tiles: 2 columns on phones, 3 on tablets, 6 across on desktop.
+    const columns = isDesktop ? 6 : isTablet ? 3 : 2;
+    const gap = spacing.md;
+    const tileWidth = Math.floor((Math.min(width, maxContentWidth ?? width) - pagePadding * 2 - gap * (columns - 1)) / columns);
 
     // Post-process insights to clean up nutrient names like 'iron_mg' -> 'Iron'
     const processInsights = (rawInsights) => {
@@ -174,17 +182,25 @@ export default function Home() {
     return (
         <LinearGradient colors={gradients.background} style={styles.container}>
             <StatusBar barStyle="dark-content" />
-            <SafeAreaView style={styles.safeArea}>
-                <ScrollView
-                    style={styles.scrollView}
-                    contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={false}
-                >
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    {
+                        paddingTop: insets.top + spacing.md,
+                        paddingBottom: insets.bottom + 110,
+                        paddingHorizontal: pagePadding,
+                        alignItems: 'center',
+                    },
+                ]}
+                showsVerticalScrollIndicator={false}
+            >
+                <View style={[styles.inner, maxContentWidth ? { maxWidth: maxContentWidth } : null]}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <View>
+                        <View style={styles.headerText}>
                             <Text style={styles.greeting}>Hello,</Text>
-                            <Text style={styles.name}>{displayName} 👋</Text>
+                            <Text style={styles.name} numberOfLines={1}>{displayName} 👋</Text>
                         </View>
                         <TouchableOpacity
                             style={styles.profileButton}
@@ -195,17 +211,19 @@ export default function Home() {
                     </View>
 
                     {/* Feature Grid */}
-                    <View style={styles.grid}>
+                    <View style={[styles.grid, { gap }]}>
                         {FEATURES.map((feature) => (
                             <Card
                                 key={feature.id}
-                                style={styles.featureCard}
+                                style={[styles.featureCard, { width: tileWidth }]}
                                 onPress={() => router.push(feature.route)}
                             >
                                 <View style={[styles.iconCircle, { backgroundColor: feature.color + '20' }]}>
                                     <Ionicons name={feature.icon} size={28} color={feature.color} />
                                 </View>
-                                <Text style={styles.featureTitle}>{feature.title}</Text>
+                                <Text style={styles.featureTitle} numberOfLines={2}>
+                                    {feature.title.replace('\n', ' ')}
+                                </Text>
                             </Card>
                         ))}
                     </View>
@@ -260,11 +278,8 @@ export default function Home() {
                             )}
                         </Card>
                     </View>
-
-                    {/* Spacer for tab bar */}
-                    <View style={{ height: 100 }} />
-                </ScrollView>
-            </SafeAreaView>
+                </View>
+            </ScrollView>
         </LinearGradient>
     );
 }
@@ -273,21 +288,25 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    safeArea: {
-        flex: 1,
-    },
     scrollView: {
         flex: 1,
+        width: '100%',
     },
     scrollContent: {
-        padding: spacing.lg,
+        flexGrow: 1,
+    },
+    inner: {
+        width: '100%',
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: spacing.xl,
-        marginTop: spacing.md,
+    },
+    headerText: {
+        flex: 1,
+        paddingRight: spacing.md,
     },
     greeting: {
         ...typography.body,
@@ -303,14 +322,13 @@ const styles = StyleSheet.create({
     grid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: spacing.md,
         marginBottom: spacing.xl,
     },
     featureCard: {
-        width: '47%',
         aspectRatio: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        paddingVertical: spacing.md,
     },
     iconCircle: {
         width: 56,
@@ -325,6 +343,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: colors.inkPurple,
         textAlign: 'center',
+        fontSize: 14,
     },
     sectionTitle: {
         ...typography.h2,

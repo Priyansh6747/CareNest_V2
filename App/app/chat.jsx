@@ -6,23 +6,25 @@ import {
     ScrollView,
     TextInput,
     TouchableOpacity,
-    SafeAreaView,
     StatusBar,
-    KeyboardAvoidingView,
     Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useUser } from '../hooks/auth_context';
-import Card from '../components/Card';
+import useResponsive from '../hooks/useResponsive';
+import ScreenHeader from '../components/ScreenHeader';
 import { colors, gradients, typography, spacing, borderRadius, shadows, glassmorphism } from '../theme';
 import { ChatAPI } from '../services/apiService';
 
 export default function Chat() {
     const router = useRouter();
     const { user } = useUser();
+    const insets = useSafeAreaInsets();
+    const { isWeb, pagePadding, cardMaxWidth } = useResponsive();
     const scrollViewRef = useRef(null);
 
     const [messages, setMessages] = useState([]);
@@ -63,7 +65,6 @@ export default function Chat() {
         try {
             const response = await ChatAPI.sendMessage(userId, {
                 message: inputText,
-                provider: 'groq',
             });
 
             const aiMessage = {
@@ -97,19 +98,18 @@ export default function Chat() {
     return (
         <LinearGradient colors={gradients.background} style={styles.container}>
             <StatusBar barStyle="dark-content" />
-            <SafeAreaView style={styles.safeArea}>
-                <KeyboardAvoidingView
-                    style={styles.keyboardView}
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                >
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                            <Ionicons name="arrow-back" size={24} color={colors.inkPurple} />
-                        </TouchableOpacity>
-                        <Text style={styles.title}>Health Assistant</Text>
-                        <View style={{ width: 40 }} />
-                    </View>
+            <View
+                style={[
+                    styles.shell,
+                    {
+                        paddingTop: insets.top + spacing.md,
+                        paddingBottom: insets.bottom + spacing.md,
+                        paddingHorizontal: pagePadding,
+                    },
+                ]}
+            >
+                <View style={[styles.inner, cardMaxWidth ? { maxWidth: cardMaxWidth } : null]}>
+                    <ScreenHeader title="Health Assistant" isWeb={isWeb} />
 
                     {/* Messages */}
                     <ScrollView
@@ -117,6 +117,7 @@ export default function Chat() {
                         style={styles.messagesContainer}
                         contentContainerStyle={styles.messagesContent}
                         showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
                     >
                         {messages.length === 0 && (
                             <View style={styles.emptyState}>
@@ -136,10 +137,13 @@ export default function Chat() {
                                     message.isError && styles.errorBubble,
                                 ]}
                             >
-                                <Text style={[
-                                    styles.messageText,
-                                    message.isUser && styles.userMessageText,
-                                ]}>
+                                <Text
+                                    style={[
+                                        styles.messageText,
+                                        message.isUser && styles.userMessageText,
+                                    ]}
+                                    selectable
+                                >
                                     {message.text}
                                 </Text>
                                 {message.sources && message.sources.length > 0 && (
@@ -151,8 +155,8 @@ export default function Chat() {
                         ))}
 
                         {loading && (
-                            <View style={[styles.messageBubble, styles.aiBubble]}>
-                                <Text style={styles.messageText}>Thinking...</Text>
+                            <View style={[styles.messageBubble, styles.aiBubble, styles.thinkingBubble]}>
+                                <Text style={styles.thinkingText}>Thinking…</Text>
                             </View>
                         )}
                     </ScrollView>
@@ -167,9 +171,17 @@ export default function Chat() {
                             placeholderTextColor={colors.dustyPurple}
                             multiline
                             maxLength={500}
+                            // Enter sends on web; Shift+Enter inserts a newline.
+                            onKeyPress={(e) => {
+                                if (Platform.OS === 'web' && e.nativeEvent.key === 'Enter'
+                                    && !e.nativeEvent.shiftKey) {
+                                    e.preventDefault?.();
+                                    sendMessage();
+                                }
+                            }}
                         />
                         <TouchableOpacity
-                            style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
+                            style={[styles.sendButton, (!inputText.trim() || loading) && styles.sendButtonDisabled]}
                             onPress={sendMessage}
                             disabled={!inputText.trim() || loading}
                         >
@@ -181,8 +193,8 @@ export default function Chat() {
                             </LinearGradient>
                         </TouchableOpacity>
                     </View>
-                </KeyboardAvoidingView>
-            </SafeAreaView>
+                </View>
+            </View>
         </LinearGradient>
     );
 }
@@ -191,31 +203,21 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    safeArea: {
+    shell: {
         flex: 1,
-    },
-    keyboardView: {
-        flex: 1,
-    },
-    header: {
-        flexDirection: 'row',
+        width: '100%',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: spacing.md,
-        paddingTop: spacing.lg,
     },
-    backButton: {
-        padding: spacing.sm,
-    },
-    title: {
-        ...typography.h2,
+    inner: {
+        flex: 1,
+        width: '100%',
     },
     messagesContainer: {
         flex: 1,
     },
     messagesContent: {
-        padding: spacing.md,
         paddingBottom: spacing.lg,
+        flexGrow: 1,
     },
     emptyState: {
         flex: 1,
@@ -231,7 +233,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.xl,
     },
     messageBubble: {
-        maxWidth: '80%',
+        maxWidth: '85%',
         padding: spacing.md,
         borderRadius: borderRadius.lg,
         marginBottom: spacing.sm,
@@ -239,17 +241,21 @@ const styles = StyleSheet.create({
     userBubble: {
         alignSelf: 'flex-end',
         backgroundColor: colors.neonPurple,
+        borderBottomRightRadius: borderRadius.sm,
     },
     aiBubble: {
         alignSelf: 'flex-start',
         ...glassmorphism.card,
+        borderBottomLeftRadius: borderRadius.sm,
     },
     errorBubble: {
         borderColor: colors.error,
+        borderWidth: 1,
     },
     messageText: {
         ...typography.body,
         color: colors.inkPurple,
+        lineHeight: 22,
     },
     userMessageText: {
         color: colors.white,
@@ -259,11 +265,19 @@ const styles = StyleSheet.create({
         marginTop: spacing.xs,
         color: colors.dustyPurple,
     },
+    thinkingBubble: {
+        paddingVertical: spacing.sm,
+    },
+    thinkingText: {
+        ...typography.bodySmall,
+        color: colors.dustyPurple,
+        fontStyle: 'italic',
+    },
     inputContainer: {
         flexDirection: 'row',
-        padding: spacing.md,
         gap: spacing.sm,
         alignItems: 'flex-end',
+        paddingTop: spacing.sm,
     },
     input: {
         flex: 1,
@@ -271,7 +285,8 @@ const styles = StyleSheet.create({
         padding: spacing.md,
         ...typography.body,
         color: colors.inkPurple,
-        maxHeight: 100,
+        maxHeight: 120,
+        minHeight: 48,
     },
     sendButton: {
         ...shadows.light,

@@ -124,14 +124,26 @@ Only return the JSON array, no other text. Example format:
 """
 
         try:
-            response = self.client.chat.completions.create(
-                model="llama-3.1-8b-instant",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                max_tokens=500,
+            from Core.llm_models import (
+                ROUTER_MODEL,
+                ROUTER_MAX_COMPLETION_TOKENS,
+                supports_reasoning_effort,
             )
+
+            kwargs = {
+                "model": ROUTER_MODEL,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.1,
+                # Small classification task, but reasoning models still need
+                # headroom before they emit the JSON answer.
+                "max_completion_tokens": ROUTER_MAX_COMPLETION_TOKENS,
+            }
+            if supports_reasoning_effort(ROUTER_MODEL):
+                kwargs["reasoning_effort"] = "low"
+
+            response = self.client.chat.completions.create(**kwargs)
             
-            content = response.choices[0].message.content.strip()
+            content = (response.choices[0].message.content or "").strip()
             
             # Parse JSON response
             # Handle potential markdown code blocks

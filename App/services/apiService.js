@@ -14,7 +14,25 @@
  * - / (NearbyHospital.py) - Hospital finder
  */
 
-const BASE_URL = 'http://10.156.65.50:8000';
+const DEFAULT_PORT = 8000;
+
+function resolveBaseUrl() {
+  // Full URL override wins (set EXPO_PUBLIC_API_URL at build/run time).
+  const fromEnv = process.env.EXPO_PUBLIC_API_URL;
+  if (fromEnv) return fromEnv.replace(/\/$/, '');
+
+  // Otherwise inject just the port and keep the host the browser is already
+  // on, so the app works from localhost and from a phone on the LAN alike.
+  const port = process.env.EXPO_PUBLIC_API_PORT || DEFAULT_PORT;
+
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    return `${window.location.protocol}//${window.location.hostname}:${port}`;
+  }
+
+  return `http://localhost:${port}`;
+}
+
+const BASE_URL = resolveBaseUrl();
 
 /**
  * Generic fetch wrapper with error handling
@@ -227,19 +245,19 @@ export const InsightsAPI = {
 // =============================================================================
 
 export const ChatAPI = {
-  sendMessage: (userId, { message, provider = 'groq', model = null, include_sources = true, max_history = 10 }) =>
+  sendMessage: (userId, { message, model = null, include_sources = true, max_history = 10 }) =>
     request(`/chat/message?user_id=${userId}`, {
       method: 'POST',
-      body: { message, provider, model, include_sources, max_history },
+      body: { message, model, include_sources, max_history },
     }),
 
-  streamMessage: (userId, { message, provider = 'groq', model = null }) => {
-    // Returns EventSource for SSE streaming
+  streamMessage: (userId, { message, model = null }) => {
+    // Returns a raw fetch Response for SSE streaming
     const url = `${BASE_URL}/chat/stream?user_id=${userId}`;
     return fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, provider, model }),
+      body: JSON.stringify({ message, model }),
     });
   },
 
@@ -405,14 +423,20 @@ export const UserAPI = {
   getProfile: (userId) =>
     request(`/user/profile/${userId}`),
 
+  // Backfill the Firebase UID on the matching backend user document
+  linkAccount: (firebaseUid, email) =>
+    request(`/user/link-account?firebase_uid=${encodeURIComponent(firebaseUid)}&email=${encodeURIComponent(email)}`, {
+      method: 'POST',
+    }),
+
   getAllergies: (userId) =>
     request(`/user/allergies/${userId}`),
 
   addAllergy: (userId, allergyName) =>
-    request(`/user/allergies/${userId}?allergy_name=${allergyName}`, { method: 'POST' }),
+    request(`/user/allergies/${userId}?allergy_name=${encodeURIComponent(allergyName)}`, { method: 'POST' }),
 
   deleteAllergy: (userId, allergyName) =>
-    request(`/user/allergies/${userId}/${allergyName}`, { method: 'DELETE' }),
+    request(`/user/allergies/${userId}/${encodeURIComponent(allergyName)}`, { method: 'DELETE' }),
 };
 
 // =============================================================================

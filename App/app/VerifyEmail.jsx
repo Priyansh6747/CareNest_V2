@@ -3,20 +3,22 @@ import {
     View,
     Text,
     StyleSheet,
-    SafeAreaView,
     StatusBar,
-    Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { showAlert } from '../utils/alert';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { sendEmailVerification } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 
 import { useUser } from '../hooks/auth_context';
 import Button from '../components/Button';
+import useResponsive from '../hooks/useResponsive';
 import { colors, gradients, typography, spacing, borderRadius, glassmorphism } from '../theme';
 
 export default function VerifyEmail() {
+    const { maxContentWidth } = useResponsive();
     const { user, refreshUser, logout } = useUser();
     const [resending, setResending] = useState(false);
     const [checking, setChecking] = useState(false);
@@ -38,14 +40,14 @@ export default function VerifyEmail() {
         setResending(true);
         try {
             await sendEmailVerification(auth.currentUser);
-            Alert.alert('Email Sent', 'A new verification email has been sent.');
+            showAlert('Email Sent', 'A new verification email has been sent.');
             setCountdown(60); // 60 second cooldown
         } catch (error) {
             let message = 'Failed to send email. Please try again.';
             if (error.code === 'auth/too-many-requests') {
                 message = 'Too many requests. Please wait a few minutes.';
             }
-            Alert.alert('Error', message);
+            showAlert('Error', message);
         } finally {
             setResending(false);
         }
@@ -57,17 +59,17 @@ export default function VerifyEmail() {
             await refreshUser();
             // The auth_context will automatically redirect if verified
             if (!auth.currentUser?.emailVerified) {
-                Alert.alert('Not Verified', 'Your email is not verified yet. Please check your inbox and click the verification link.');
+                showAlert('Not Verified', 'Your email is not verified yet. Please check your inbox and click the verification link.');
             }
         } catch (error) {
-            Alert.alert('Error', 'Failed to check verification status.');
+            showAlert('Error', 'Failed to check verification status.');
         } finally {
             setChecking(false);
         }
     };
 
     const handleLogout = () => {
-        Alert.alert(
+        showAlert(
             'Logout',
             'Are you sure you want to logout?',
             [

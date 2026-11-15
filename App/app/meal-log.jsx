@@ -4,24 +4,27 @@ import {
     Text,
     StyleSheet,
     ScrollView,
-    TouchableOpacity,
-    SafeAreaView,
     StatusBar,
-    Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useUser } from '../hooks/auth_context';
+import useResponsive from '../hooks/useResponsive';
+import ScreenHeader from '../components/ScreenHeader';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import { showAlert } from '../utils/alert';
 import { colors, gradients, typography, spacing, borderRadius, shadows } from '../theme';
 import { NutritionAPI } from '../services/apiService';
 
 export default function MealLog() {
     const router = useRouter();
     const { user } = useUser();
+    const insets = useSafeAreaInsets();
+    const { isWeb, pagePadding, cardMaxWidth } = useResponsive();
 
     const [mealName, setMealName] = useState('');
     const [description, setDescription] = useState('');
@@ -32,11 +35,11 @@ export default function MealLog() {
 
     const handleSubmit = async () => {
         if (!mealName.trim()) {
-            Alert.alert('Error', 'Please enter a meal name');
+            showAlert('Error', 'Please enter a meal name');
             return;
         }
         if (!amount || parseFloat(amount) <= 0) {
-            Alert.alert('Error', 'Please enter a valid amount in grams');
+            showAlert('Error', 'Please enter a valid amount in grams');
             return;
         }
 
@@ -48,11 +51,11 @@ export default function MealLog() {
                 amnt: parseFloat(amount),
             });
 
-            Alert.alert('Success', 'Meal logged and analyzed!', [
+            showAlert('Success', 'Meal logged and analyzed!', [
                 { text: 'OK', onPress: () => router.back() },
             ]);
         } catch (err) {
-            Alert.alert('Error', 'Failed to log meal. Please try again.');
+            showAlert('Error', 'Failed to log meal. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -61,20 +64,22 @@ export default function MealLog() {
     return (
         <LinearGradient colors={gradients.background} style={styles.container}>
             <StatusBar barStyle="dark-content" />
-            <SafeAreaView style={styles.safeArea}>
-                <ScrollView
-                    style={styles.scrollView}
-                    contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={false}
-                >
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                            <Ionicons name="arrow-back" size={24} color={colors.inkPurple} />
-                        </TouchableOpacity>
-                        <Text style={styles.title}>Log Meal</Text>
-                        <View style={{ width: 40 }} />
-                    </View>
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    {
+                        paddingTop: insets.top + spacing.md,
+                        paddingBottom: insets.bottom + spacing.xl,
+                        paddingHorizontal: pagePadding,
+                        alignItems: 'center',
+                    },
+                ]}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
+                <View style={[styles.inner, cardMaxWidth ? { maxWidth: cardMaxWidth } : null]}>
+                    <ScreenHeader title="Log Meal" isWeb={isWeb} />
 
                     {/* Info Card */}
                     <View style={styles.infoCard}>
@@ -119,8 +124,8 @@ export default function MealLog() {
                             />
                         </View>
                     </View>
-                </ScrollView>
-            </SafeAreaView>
+                </View>
+            </ScrollView>
         </LinearGradient>
     );
 }
@@ -129,27 +134,15 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    safeArea: {
-        flex: 1,
-    },
     scrollView: {
         flex: 1,
+        width: '100%',
     },
     scrollContent: {
-        padding: spacing.lg,
+        flexGrow: 1,
     },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: spacing.lg,
-        marginTop: spacing.md,
-    },
-    backButton: {
-        padding: spacing.sm,
-    },
-    title: {
-        ...typography.h2,
+    inner: {
+        width: '100%',
     },
     infoCard: {
         flexDirection: 'row',

@@ -5,23 +5,25 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    SafeAreaView,
     StatusBar,
-    Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { showAlert } from '../utils/alert';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { useUser } from '../hooks/auth_context';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import useResponsive from '../hooks/useResponsive';
 import { colors, gradients, typography, spacing, borderRadius, shadows } from '../theme';
 import { SymptomsAPI, UserAPI } from '../services/apiService';
 
 const SEVERITY_LEVELS = [1, 2, 3, 4, 5];
 
 export default function SymptomLog() {
+    const { maxContentWidth } = useResponsive();
     const router = useRouter();
     const { user } = useUser();
 
@@ -62,7 +64,7 @@ export default function SymptomLog() {
 
     const handleAddAllergy = async () => {
         if (!newAllergy.trim()) {
-            Alert.alert('Error', 'Please enter an allergy name');
+            showAlert('Error', 'Please enter an allergy name');
             return;
         }
 
@@ -71,16 +73,16 @@ export default function SymptomLog() {
             const response = await UserAPI.addAllergy(userId, newAllergy.trim());
             setAllergies(response.allergies);
             setNewAllergy('');
-            Alert.alert('Success', 'Allergy added successfully');
+            showAlert('Success', 'Allergy added successfully');
         } catch (err) {
-            Alert.alert('Error', 'Failed to add allergy');
+            showAlert('Error', 'Failed to add allergy');
         } finally {
             setLoading(false);
         }
     };
 
     const handleDeleteAllergy = async (allergyName) => {
-        Alert.alert(
+        showAlert(
             "Remove Allergy",
             `Are you sure you want to remove "${allergyName}"?`,
             [
@@ -93,7 +95,7 @@ export default function SymptomLog() {
                             const response = await UserAPI.deleteAllergy(userId, allergyName);
                             setAllergies(response.allergies);
                         } catch (err) {
-                            Alert.alert('Error', 'Failed to remove allergy');
+                            showAlert('Error', 'Failed to remove allergy');
                         }
                     }
                 }
@@ -103,7 +105,7 @@ export default function SymptomLog() {
 
     const handleSubmit = async () => {
         if (!symptomName.trim()) {
-            Alert.alert('Error', 'Please enter a symptom name');
+            showAlert('Error', 'Please enter a symptom name');
             return;
         }
 
@@ -115,11 +117,11 @@ export default function SymptomLog() {
                 description: description.trim() || null,
             });
 
-            Alert.alert('Success', 'Symptom logged successfully!', [
+            showAlert('Success', 'Symptom logged successfully!', [
                 { text: 'OK', onPress: () => router.back() },
             ]);
         } catch (err) {
-            Alert.alert('Error', 'Failed to log symptom. Please try again.');
+            showAlert('Error', 'Failed to log symptom. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -131,7 +133,7 @@ export default function SymptomLog() {
             <SafeAreaView style={styles.safeArea}>
                 <ScrollView
                     style={styles.scrollView}
-                    contentContainerStyle={styles.scrollContent}
+                    contentContainerStyle={[styles.scrollContent, maxContentWidth ? { maxWidth: maxContentWidth, alignSelf: 'center', width: '100%' } : null]}
                     showsVerticalScrollIndicator={false}
                 >
                     {/* Header */}

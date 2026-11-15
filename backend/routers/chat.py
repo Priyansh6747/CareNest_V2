@@ -27,8 +27,7 @@ router = APIRouter(prefix="/chat", tags=["Chat"])
 class ChatRequest(BaseModel):
     """Request for chat endpoint."""
     message: str = Field(..., min_length=1, description="User message")
-    provider: str = Field(default="groq", description="LLM provider: groq or gemini")
-    model: Optional[str] = Field(default=None, description="Specific model to use")
+    model: Optional[str] = Field(default=None, description="Specific Groq model to use")
     include_sources: bool = Field(default=True, description="Include source citations")
     max_history: int = Field(default=10, ge=1, le=50, description="Max messages to keep")
 
@@ -37,7 +36,6 @@ class ChatMessageResponse(BaseModel):
     """Response from chat endpoint."""
     message: str
     sources: List[dict]
-    provider: str
     model: str
     context_used: bool
     retrieval_time_ms: float
@@ -71,7 +69,7 @@ async def send_message(request: ChatRequest, user_id: str = Query(...)):
     Uses:
     - Context Pyramid for user-specific context (5 layers)
     - SRS for knowledge retrieval
-    - Groq or Gemini for response generation
+    - Groq for response generation
     
     Messages are saved to history (Layer 4 of Context Pyramid).
     """
@@ -83,7 +81,6 @@ async def send_message(request: ChatRequest, user_id: str = Query(...)):
         
         response = await engine.chat(
             message=request.message,
-            provider=request.provider,
             model=request.model,
             include_sources=request.include_sources,
         )
@@ -115,7 +112,6 @@ async def stream_message(request: ChatRequest, user_id: str = Query(...)):
             try:
                 async for chunk in engine.chat_stream(
                     message=request.message,
-                    provider=request.provider,
                     model=request.model,
                 ):
                     yield f"data: {json.dumps({'chunk': chunk})}\n\n"

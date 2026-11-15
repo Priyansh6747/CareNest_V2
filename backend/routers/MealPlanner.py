@@ -25,8 +25,21 @@ logger = logging.getLogger(__name__)
 # Initialize router
 meal_router = APIRouter(prefix="/meal", tags=["Meal Planner"])
 
-# Initialize Groq client
-groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+_groq_client = None
+
+
+def get_groq_client() -> Groq:
+    """Lazily create the Groq client so a missing key does not break app import."""
+    global _groq_client
+    if _groq_client is None:
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="GROQ_API_KEY is not configured",
+            )
+        _groq_client = Groq(api_key=api_key)
+    return _groq_client
 
 
 # =============================================================================
@@ -156,20 +169,31 @@ Return the response in this JSON format:
 Return ONLY valid JSON, no additional text."""
 
     try:
-        response = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
+        from Core.llm_models import (
+            CHAT_MODEL,
+            DEFAULT_REASONING_EFFORT,
+            supports_reasoning_effort,
+        )
+
+        kwargs = {
+            "model": CHAT_MODEL,
+            "messages": [
                 {
                     "role": "system",
                     "content": "You are a prenatal nutrition expert. Always respond with valid JSON only."
                 },
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.7,
-            max_tokens=4000,
-        )
+            "temperature": 0.7,
+            # A 7-day plan is a long JSON document; leaves room for reasoning too.
+            "max_completion_tokens": 8192,
+        }
+        if supports_reasoning_effort(CHAT_MODEL):
+            kwargs["reasoning_effort"] = DEFAULT_REASONING_EFFORT
+
+        response = get_groq_client().chat.completions.create(**kwargs)
         
-        result_text = response.choices[0].message.content.strip()
+        result_text = (response.choices[0].message.content or "").strip()
         
         # Try to parse JSON
         # Handle potential markdown code blocks
@@ -300,14 +324,23 @@ Return as JSON array:
 
 Return ONLY valid JSON array."""
 
-        response = groq_client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=800,
+        from Core.llm_models import (
+            CHAT_MODEL,
+            supports_reasoning_effort,
         )
+
+        kwargs = {
+            "model": CHAT_MODEL,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.7,
+            "max_completion_tokens": 2048,
+        }
+        if supports_reasoning_effort(CHAT_MODEL):
+            kwargs["reasoning_effort"] = "low"
+
+        response = get_groq_client().chat.completions.create(**kwargs)
         
-        result_text = response.choices[0].message.content.strip()
+        result_text = (response.choices[0].message.content or "").strip()
         
         # Parse JSON
         if result_text.startswith("```"):

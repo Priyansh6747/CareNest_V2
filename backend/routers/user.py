@@ -111,6 +111,40 @@ async def complete_onboarding(user_id: str):
     return {"message": "Onboarding marked as complete", "user_id": user_id}
 
 
+@router.post(
+    "/link-account",
+    summary="Link a Firebase Auth account to a user doc",
+    description="Backfills firebase_uid on the user document matching the given email.",
+)
+async def link_account(firebase_uid: str, email: str):
+    """
+    Link a Firebase Auth UID to the Firestore user document with the same email.
+
+    Existing accounts created before firebase_uid was stored need this once;
+    it makes the UID -> profile lookup work for allergy/profile endpoints.
+    """
+    from config import users_collection
+
+    try:
+        matches = list(users_collection.where("email", "==", email).limit(1).stream())
+        if not matches:
+            raise HTTPException(status_code=404, detail=f"No user found with email: {email}")
+
+        user_doc = matches[0]
+        existing = user_doc.to_dict() or {}
+
+        if existing.get("firebase_uid") == firebase_uid:
+            return {"linked": False, "user_id": user_doc.id, "reason": "already linked"}
+
+        users_collection.document(user_doc.id).update({"firebase_uid": firebase_uid})
+        return {"linked": True, "user_id": user_doc.id}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get(
     "/profile/{user_id}",
     summary="Get user profile",
@@ -175,28 +209,50 @@ def _get_maternal_profile_ref(user_id: str):
     """
     Helper to find the maternal profile document reference and data.
     Returns (doc_ref, doc_data).
+
+    The frontend identifies users by their Firebase Auth UID, while maternal
+    profiles are keyed by the Firestore user document id. `firebase_uid` is the
+    bridge between the two.
+
     Raises HTTPException if not found.
     """
     from config import maternal_profiles_collection, users_collection
-    
-    # Strategy 1: Try direct query with provided user_id
-    maternal_docs = list(
-        maternal_profiles_collection.where("user_id", "==", user_id).limit(1).stream()
-    )
-    
-    # Strategy 2: If not found, try to find user doc by Firebase UID
+
+    def _profile_for_firestore_user(firestore_user_id: str):
+        docs = list(
+            maternal_profiles_collection
+            .where("user_id", "==", firestore_user_id)
+            .limit(1)
+            .stream()
+        )
+        return docs
+
+    # Strategy 1: the id given is already a maternal-profiles `user_id`.
+    maternal_docs = _profile_for_firestore_user(user_id)
+
+    # Strategy 2: treat it as a Firebase Auth UID and look up the user doc.
+    if not maternal_docs:
+        try:
+            by_firebase_uid = list(
+                users_collection.where("firebase_uid", "==", user_id).limit(1).stream()
+            )
+            for user_doc in by_firebase_uid:
+                maternal_docs = _profile_for_firestore_user(user_doc.id)
+                if maternal_docs:
+                    break
+        except Exception:
+            pass
+
+    # Strategy 3: treat it as the users document id itself.
     if not maternal_docs:
         try:
             user_doc = users_collection.document(user_id).get()
             if user_doc.exists:
-                firestore_user_id = user_doc.id
-                maternal_docs = list(
-                    maternal_profiles_collection.where("user_id", "==", firestore_user_id).limit(1).stream()
-                )
+                maternal_docs = _profile_for_firestore_user(user_doc.id)
         except Exception:
             pass
-    
-    # Strategy 3: Check if maternal profile document ID matches user_id
+
+    # Strategy 4: the maternal profile document id matches user_id.
     if not maternal_docs:
         try:
             maternal_doc = maternal_profiles_collection.document(user_id).get()
@@ -204,25 +260,26 @@ def _get_maternal_profile_ref(user_id: str):
                 maternal_docs = [maternal_doc]
         except Exception:
             pass
-    
-    # Strategy 4: Search users by phone/email containing user_id pattern
+
+    # Strategy 5: legacy records with `uid` instead of `firebase_uid`.
     if not maternal_docs:
-        user_query = list(users_collection.limit(50).stream())
-        for user_doc in user_query:
-            user_data = user_doc.to_dict()
-            if user_data.get("firebase_uid") == user_id or user_data.get("uid") == user_id:
-                maternal_docs = list(
-                    maternal_profiles_collection.where("user_id", "==", user_doc.id).limit(1).stream()
-                )
+        try:
+            by_legacy_uid = list(
+                users_collection.where("uid", "==", user_id).limit(1).stream()
+            )
+            for user_doc in by_legacy_uid:
+                maternal_docs = _profile_for_firestore_user(user_doc.id)
                 if maternal_docs:
                     break
-    
+        except Exception:
+            pass
+
     if not maternal_docs:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Profile not found for user: {user_id}"
         )
-    
+
     return maternal_docs[0].reference, maternal_docs[0].to_dict()
 
 

@@ -4,13 +4,13 @@ import {
     Text,
     StyleSheet,
     ScrollView,
-    SafeAreaView,
     StatusBar,
-    Alert,
     KeyboardAvoidingView,
     Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { showAlert } from '../utils/alert';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { updateProfile } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
@@ -19,12 +19,14 @@ import { useUser } from '../hooks/auth_context';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import Card from '../components/Card';
+import useResponsive from '../hooks/useResponsive';
 import { colors, gradients, typography, spacing, borderRadius, glassmorphism } from '../theme';
 import { UserAPI } from '../services/apiService';
 
 const STEPS = ['profile', 'maternal', 'consent'];
 
 export default function Onboarding() {
+    const { maxContentWidth } = useResponsive();
     const { user, refreshUser } = useUser();
 
     const [currentStep, setCurrentStep] = useState(0);
@@ -45,14 +47,14 @@ export default function Onboarding() {
         if (currentStep === 0) {
             // Validate profile
             if (!displayName.trim()) {
-                Alert.alert('Required', 'Please enter your name');
+                showAlert('Required', 'Please enter your name');
                 return;
             }
             setCurrentStep(1);
         } else if (currentStep === 1) {
             // Validate maternal info
             if (!age || !heightCm || !weightKg) {
-                Alert.alert('Required', 'Please fill in all fields');
+                showAlert('Required', 'Please fill in all fields');
                 return;
             }
             setCurrentStep(2);
@@ -85,6 +87,10 @@ export default function Onboarding() {
 
             await UserAPI.initOnboarding({
                 user: {
+                    // Link the Firebase Auth account to the Firestore profile.
+                    // Without this the backend cannot resolve the user by UID
+                    // and profile endpoints (allergies, etc.) return 404.
+                    firebase_uid: user.uid,
                     phone: phone || null,
                     email: user.email,
                     role: 'mother',  // Default role
@@ -117,12 +123,20 @@ export default function Onboarding() {
                 },
             });
 
-            // 3. Refresh user to trigger navigation
+            // 3. Refresh user so the route guards re-evaluate
             await refreshUser();
+
+            // 4. On web, hard-reload so the app lands cleanly on the home
+            //    screen. The auth state is persisted, so this is safe and also
+            //    works around the guard not re-running after reload().
+            if (Platform.OS === 'web') {
+                window.location.replace('/');
+                return;
+            }
 
         } catch (error) {
             console.log('Onboarding error:', error);
-            Alert.alert('Error', 'Failed to complete onboarding. Please try again.');
+            showAlert('Error', 'Failed to complete onboarding. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -285,7 +299,7 @@ export default function Onboarding() {
 
                     <ScrollView
                         style={styles.scrollView}
-                        contentContainerStyle={styles.scrollContent}
+                        contentContainerStyle={[styles.scrollContent, maxContentWidth ? { maxWidth: maxContentWidth, alignSelf: 'center', width: '100%' } : null]}
                         showsVerticalScrollIndicator={false}
                     >
                         {currentStep === 0 && renderProfileStep()}

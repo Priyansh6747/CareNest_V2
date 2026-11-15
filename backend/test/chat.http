@@ -27,13 +27,13 @@ Content-Type: application/json
 
 ###
 
-### Chat with Gemini
+### Chat with a specific model
 POST {{baseUrl}}/chat/message?user_id={{userId}}
 Content-Type: application/json
 
 {
   "message": "What are good sources of omega-3 for pregnant women?",
-  "provider": "gemini"
+  "model": "llama-3.1-8b-instant"
 }
 
 ###
@@ -99,13 +99,13 @@ Content-Type: application/json
 
 ###
 
-### Stream response with Gemini
+### Stream response with a smaller model
 POST {{baseUrl}}/chat/stream?user_id={{userId}}
 Content-Type: application/json
 
 {
   "message": "What are the best foods for baby brain development?",
-  "provider": "gemini"
+  "model": "llama-3.1-8b-instant"
 }
 
 ###

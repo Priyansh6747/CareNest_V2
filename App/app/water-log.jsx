@@ -5,17 +5,19 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    SafeAreaView,
     StatusBar,
-    Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useUser } from '../hooks/auth_context';
+import useResponsive from '../hooks/useResponsive';
+import ScreenHeader from '../components/ScreenHeader';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import { showAlert } from '../utils/alert';
 import { colors, gradients, typography, spacing, borderRadius, shadows } from '../theme';
 import { WaterAPI } from '../services/apiService';
 
@@ -29,6 +31,8 @@ const QUICK_AMOUNTS = [
 export default function WaterLog() {
     const router = useRouter();
     const { user } = useUser();
+    const insets = useSafeAreaInsets();
+    const { isWeb, pagePadding, cardMaxWidth } = useResponsive();
 
     const [amount, setAmount] = useState('250');
     const [note, setNote] = useState('');
@@ -42,7 +46,7 @@ export default function WaterLog() {
 
     const handleSubmit = async () => {
         if (!amount || parseFloat(amount) <= 0) {
-            Alert.alert('Error', 'Please enter a valid amount');
+            showAlert('Error', 'Please enter a valid amount');
             return;
         }
 
@@ -53,11 +57,11 @@ export default function WaterLog() {
                 note: note.trim() || null,
             });
 
-            Alert.alert('Success', 'Water intake logged!', [
+            showAlert('Success', 'Water intake logged!', [
                 { text: 'OK', onPress: () => router.back() },
             ]);
         } catch (err) {
-            Alert.alert('Error', 'Failed to log water. Please try again.');
+            showAlert('Error', 'Failed to log water. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -66,20 +70,22 @@ export default function WaterLog() {
     return (
         <LinearGradient colors={gradients.background} style={styles.container}>
             <StatusBar barStyle="dark-content" />
-            <SafeAreaView style={styles.safeArea}>
-                <ScrollView
-                    style={styles.scrollView}
-                    contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={false}
-                >
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                            <Ionicons name="arrow-back" size={24} color={colors.inkPurple} />
-                        </TouchableOpacity>
-                        <Text style={styles.title}>Log Water</Text>
-                        <View style={{ width: 40 }} />
-                    </View>
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    {
+                        paddingTop: insets.top + spacing.md,
+                        paddingBottom: insets.bottom + spacing.xl,
+                        paddingHorizontal: pagePadding,
+                        alignItems: 'center',
+                    },
+                ]}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
+                <View style={[styles.inner, cardMaxWidth ? { maxWidth: cardMaxWidth } : null]}>
+                    <ScreenHeader title="Log Water" isWeb={isWeb} />
 
                     {/* Water Icon */}
                     <View style={styles.iconContainer}>
@@ -141,8 +147,8 @@ export default function WaterLog() {
                             />
                         </View>
                     </View>
-                </ScrollView>
-            </SafeAreaView>
+                </View>
+            </ScrollView>
         </LinearGradient>
     );
 }
@@ -151,27 +157,15 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    safeArea: {
-        flex: 1,
-    },
     scrollView: {
         flex: 1,
+        width: '100%',
     },
     scrollContent: {
-        padding: spacing.lg,
+        flexGrow: 1,
     },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: spacing.lg,
-        marginTop: spacing.md,
-    },
-    backButton: {
-        padding: spacing.sm,
-    },
-    title: {
-        ...typography.h2,
+    inner: {
+        width: '100%',
     },
     iconContainer: {
         alignItems: 'center',

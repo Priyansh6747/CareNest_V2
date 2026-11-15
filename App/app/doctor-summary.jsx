@@ -5,18 +5,20 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    SafeAreaView,
     StatusBar,
     Share,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import Card from '../components/Card';
+import useResponsive from '../hooks/useResponsive';
 import { colors, gradients, typography, spacing, borderRadius, shadows } from '../theme';
 
 export default function DoctorSummary() {
+    const { maxContentWidth } = useResponsive();
     const router = useRouter();
     const { summary: summaryParam } = useLocalSearchParams();
 
@@ -121,7 +123,7 @@ export default function DoctorSummary() {
             <SafeAreaView style={styles.safeArea}>
                 <ScrollView
                     style={styles.scrollView}
-                    contentContainerStyle={styles.scrollContent}
+                    contentContainerStyle={[styles.scrollContent, maxContentWidth ? { maxWidth: maxContentWidth, alignSelf: 'center', width: '100%' } : null]}
                     showsVerticalScrollIndicator={false}
                 >
                     {/* Header */}

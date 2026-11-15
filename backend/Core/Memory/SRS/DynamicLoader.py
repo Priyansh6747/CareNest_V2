@@ -112,6 +112,88 @@ class LoadedStore:
 
 
 # =============================================================================
+# Pickle compatibility
+# =============================================================================
+# The vector stores were built with LangChain, so index.pkl references
+# langchain_core / langchain_community classes. Rather than pulling those large
+# dependencies in just to read two container types, map them to local stand-ins.
+# =============================================================================
+
+class _CompatDocument:
+    """Stand-in for langchain_core.documents.Document."""
+
+    def __init__(self, page_content: str = "", metadata: Optional[dict] = None):
+        self.page_content = page_content
+        self.metadata = metadata or {}
+
+    def __setstate__(self, state):
+        # Pydantic models pickle their payload as {"__dict__": {...}, ...},
+        # while plain objects pickle their __dict__ directly. Handle both.
+        if isinstance(state, tuple):
+            state = state[0] if state else {}
+        if isinstance(state, dict):
+            payload = state.get("__dict__")
+            self.__dict__.update(payload if isinstance(payload, dict) else state)
+
+
+class _CompatDocstore:
+    """Stand-in for langchain_community.docstore.in_memory.InMemoryDocstore."""
+
+    def __init__(self, *args, **kwargs):
+        self._dict = {}
+
+    def __setstate__(self, state):
+        if isinstance(state, tuple):
+            state = state[0] if state else {}
+        if isinstance(state, dict):
+            payload = state.get("__dict__")
+            self.__dict__.update(payload if isinstance(payload, dict) else state)
+
+
+class _CompatModule:
+    """Lazy module shim so nested class lookups resolve."""
+
+    def __init__(self, classes):
+        self._classes = classes
+
+    def __getattr__(self, name):
+        try:
+            return self._classes[name]
+        except KeyError:
+            raise AttributeError(name)
+
+
+_COMPAT_CLASSES = {
+    ("langchain_core.documents.base", "Document"): _CompatDocument,
+    ("langchain_core.documents", "Document"): _CompatDocument,
+    ("langchain_community.docstore.in_memory", "InMemoryDocstore"): _CompatDocstore,
+    ("langchain.docstore.in_memory", "InMemoryDocstore"): _CompatDocstore,
+}
+
+_COMPAT_MODULES = {
+    "langchain_core.documents.base": _CompatModule({"Document": _CompatDocument}),
+    "langchain_core.documents": _CompatModule({"Document": _CompatDocument}),
+    "langchain_community.docstore.in_memory": _CompatModule({"InMemoryDocstore": _CompatDocstore}),
+    "langchain.docstore.in_memory": _CompatModule({"InMemoryDocstore": _CompatDocstore}),
+}
+
+
+class _StoreUnpickler(pickle.Unpickler):
+    """Unpickler that tolerates LangChain classes in stored indexes."""
+
+    def find_class(self, module, name):
+        compat = _COMPAT_CLASSES.get((module, name))
+        if compat is not None:
+            return compat
+        return super().find_class(module, name)
+
+
+def _load_pickle(path: Path):
+    with open(path, "rb") as f:
+        return _StoreUnpickler(f).load()
+
+
+# =============================================================================
 # Dynamic Loader with LRU Cache
 # =============================================================================
 
@@ -159,11 +241,31 @@ class DynamicLoader:
             index = faiss.read_index(str(index_path))
             
             # Load document chunks from pickle
-            with open(pkl_path, 'rb') as f:
-                pkl_data = pickle.load(f)
-            
-            # Handle different pickle formats
-            if isinstance(pkl_data, dict):
+            pkl_data = _load_pickle(pkl_path)
+
+            # LangChain's save_local writes (docstore, index_to_docstore_id).
+            # Chunk order must match the FAISS row order, hence the index keys.
+            if isinstance(pkl_data, tuple) and len(pkl_data) == 2:
+                docstore, index_to_id = pkl_data
+                docs = getattr(docstore, "_dict", None)
+                if docs is None and isinstance(docstore, dict):
+                    docs = docstore
+
+                chunks = []
+                if isinstance(docs, dict) and isinstance(index_to_id, dict):
+                    for row, row_key in enumerate(sorted(index_to_id, key=lambda k: int(k))):
+                        doc_id = index_to_id[row_key]
+                        doc = docs.get(doc_id)
+                        if doc is None:
+                            continue
+                        chunks.append({
+                            'id': row,
+                            'text': getattr(doc, 'page_content', str(doc)),
+                            'metadata': getattr(doc, 'metadata', {}) or {}
+                        })
+                else:
+                    logger.warning(f"Unrecognised docstore layout for {store_info.store_id}")
+            elif isinstance(pkl_data, dict):
                 # Format: {"texts": [...], "metadatas": [...]} or similar
                 chunks = []
                 texts = pkl_data.get('texts', pkl_data.get('documents', []))

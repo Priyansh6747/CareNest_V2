@@ -3,9 +3,7 @@ import {
     View,
     Text,
     StyleSheet,
-    ScrollView,
     TouchableOpacity,
-    SafeAreaView,
     StatusBar,
     FlatList,
     RefreshControl,
@@ -13,8 +11,10 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useUser } from '../../hooks/auth_context';
+import useResponsive from '../../hooks/useResponsive';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import { colors, gradients, typography, spacing, borderRadius, shadows, glassmorphism } from '../../theme';
@@ -25,12 +25,17 @@ const TABS = ['Meals', 'Water', 'Symptoms'];
 export default function Logs() {
     const router = useRouter();
     const { user } = useUser();
+    const insets = useSafeAreaInsets();
+    const { isDesktop, isTablet, maxContentWidth, pagePadding } = useResponsive();
     const [activeTab, setActiveTab] = useState('Meals');
     const [meals, setMeals] = useState([]);
     const [waterLogs, setWaterLogs] = useState([]);
     const [symptoms, setSymptoms] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    // Wider screens show the logs in multiple columns.
+    const numColumns = isDesktop ? 2 : 1;
 
     const userId = user?.uid;
 
@@ -157,56 +162,72 @@ export default function Logs() {
     return (
         <LinearGradient colors={gradients.background} style={styles.container}>
             <StatusBar barStyle="dark-content" />
-            <SafeAreaView style={styles.safeArea}>
-                <View style={styles.header}>
-                    <Text style={styles.title}>Your Logs</Text>
-                </View>
+            <View
+                style={[
+                    styles.content,
+                    {
+                        paddingTop: insets.top + spacing.md,
+                        paddingHorizontal: pagePadding,
+                    },
+                ]}
+            >
+                <View style={[styles.inner, maxContentWidth ? { maxWidth: maxContentWidth } : null]}>
+                    <View style={styles.header}>
+                        <Text style={styles.title}>Your Logs</Text>
+                    </View>
 
-                {/* Tab Switcher */}
-                <View style={styles.tabs}>
-                    {TABS.map((tab) => (
-                        <TouchableOpacity
-                            key={tab}
-                            style={[styles.tab, activeTab === tab && styles.activeTab]}
-                            onPress={() => setActiveTab(tab)}
-                        >
-                            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-                                {tab}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                    {/* Tab Switcher */}
+                    <View style={styles.tabs}>
+                        {TABS.map((tab) => (
+                            <TouchableOpacity
+                                key={tab}
+                                style={[styles.tab, activeTab === tab && styles.activeTab]}
+                                onPress={() => setActiveTab(tab)}
+                            >
+                                <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+                                    {tab}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
 
-                {/* List */}
-                <FlatList
-                    data={getData()}
-                    renderItem={renderItem}
-                    keyExtractor={(item) => item._id || item.id || Math.random().toString()}
-                    contentContainerStyle={styles.listContent}
-                    refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.neonPurple} />
-                    }
-                    ListEmptyComponent={
-                        <View style={styles.empty}>
-                            <Ionicons
-                                name={activeTab === 'Meals' ? 'restaurant-outline' : activeTab === 'Water' ? 'water-outline' : 'medical-outline'}
-                                size={48}
-                                color={colors.dustyPurple}
-                            />
-                            <Text style={styles.emptyText}>No {activeTab.toLowerCase()} logged yet</Text>
-                            <Button
-                                title={`Add ${activeTab.slice(0, -1)}`}
-                                onPress={() => router.push(getAddRoute())}
-                                size="small"
-                                style={{ marginTop: spacing.md }}
-                            />
-                        </View>
-                    }
-                />
+                    {/* List */}
+                    <FlatList
+                        key={`logs-${numColumns}`}
+                        data={getData()}
+                        renderItem={renderItem}
+                        keyExtractor={(item, index) => (item._id || item.id || `${activeTab}-${index}`).toString()}
+                        numColumns={numColumns}
+                        columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
+                        contentContainerStyle={[
+                            styles.listContent,
+                            { paddingBottom: insets.bottom + 120 },
+                        ]}
+                        refreshControl={
+                            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.neonPurple} />
+                        }
+                        ListEmptyComponent={
+                            <View style={styles.empty}>
+                                <Ionicons
+                                    name={activeTab === 'Meals' ? 'restaurant-outline' : activeTab === 'Water' ? 'water-outline' : 'medical-outline'}
+                                    size={48}
+                                    color={colors.dustyPurple}
+                                />
+                                <Text style={styles.emptyText}>No {activeTab.toLowerCase()} logged yet</Text>
+                                <Button
+                                    title={`Add ${activeTab.slice(0, -1)}`}
+                                    onPress={() => router.push(getAddRoute())}
+                                    size="small"
+                                    style={{ marginTop: spacing.md }}
+                                />
+                            </View>
+                        }
+                    />
+                </View>
 
                 {/* FAB */}
                 <TouchableOpacity
-                    style={styles.fab}
+                    style={[styles.fab, { bottom: insets.bottom + 100 }]}
                     onPress={() => router.push(getAddRoute())}
                 >
                     <LinearGradient
@@ -216,10 +237,7 @@ export default function Logs() {
                         <Ionicons name="add" size={28} color={colors.white} />
                     </LinearGradient>
                 </TouchableOpacity>
-
-                {/* Spacer for tab bar */}
-                <View style={{ height: 90 }} />
-            </SafeAreaView>
+            </View>
         </LinearGradient>
     );
 }
@@ -228,11 +246,16 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    safeArea: {
+    content: {
         flex: 1,
+        width: '100%',
+        alignItems: 'center',
+    },
+    inner: {
+        flex: 1,
+        width: '100%',
     },
     header: {
-        padding: spacing.lg,
         paddingBottom: spacing.md,
     },
     title: {
@@ -240,7 +263,6 @@ const styles = StyleSheet.create({
     },
     tabs: {
         flexDirection: 'row',
-        paddingHorizontal: spacing.lg,
         marginBottom: spacing.md,
         gap: spacing.sm,
     },
@@ -264,12 +286,14 @@ const styles = StyleSheet.create({
         color: colors.white,
     },
     listContent: {
-        padding: spacing.lg,
-        paddingTop: 0,
+        flexGrow: 1,
+    },
+    columnWrapper: {
         gap: spacing.md,
     },
     listItem: {
-        marginBottom: spacing.sm,
+        flex: 1,
+        marginBottom: spacing.md,
     },
     itemHeader: {
         flexDirection: 'row',
@@ -292,7 +316,8 @@ const styles = StyleSheet.create({
     },
     nutrients: {
         flexDirection: 'row',
-        gap: spacing.md,
+        flexWrap: 'wrap',
+        gap: spacing.sm,
         marginTop: spacing.sm,
     },
     nutrientText: {
@@ -306,6 +331,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: spacing.xxl,
+        flex: 1,
     },
     emptyText: {
         ...typography.body,
@@ -315,7 +341,6 @@ const styles = StyleSheet.create({
     fab: {
         position: 'absolute',
         right: spacing.lg,
-        bottom: 110,
         ...shadows.glow,
     },
     fabGradient: {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 
@@ -12,9 +12,12 @@ export default function Button({
     disabled = false,
     icon,
     style,
+    textStyle,
+    fullWidth = true,
 }) {
     const isOutlined = variant === 'outlined';
     const isPrimary = variant === 'primary';
+    const isDisabled = disabled || loading;
 
     const buttonStyles = [
         styles.base,
@@ -30,57 +33,64 @@ export default function Button({
         styles[`${size}Text`],
         isOutlined && styles.outlinedText,
         !isPrimary && !isOutlined && styles.secondaryText,
+        textStyle,
     ];
 
-    const content = (
+    const content = loading ? (
+        <ActivityIndicator
+            color={isOutlined ? colors.neonPurple : colors.white}
+            size="small"
+        />
+    ) : (
         <>
-            {loading ? (
-                <ActivityIndicator
-                    color={isOutlined ? colors.neonPurple : colors.white}
-                    size="small"
-                />
-            ) : (
-                <>
-                    {icon}
-                    <Text style={textStyles}>{title}</Text>
-                </>
-            )}
+            {icon}
+            <Text style={textStyles} numberOfLines={1}>{title}</Text>
         </>
     );
 
-    if (isPrimary && !disabled) {
-        return (
-            <TouchableOpacity
-                onPress={onPress}
-                disabled={disabled || loading}
-                activeOpacity={0.8}
-            >
+    // The touchable owns layout (width/flex) so callers can size it reliably;
+    // the visual surface is drawn by the inner gradient/view.
+    return (
+        <TouchableOpacity
+            style={[styles.touchable, fullWidth && styles.fullWidth, style]}
+            onPress={onPress}
+            disabled={isDisabled}
+            activeOpacity={0.8}
+        >
+            {isPrimary && !isDisabled ? (
                 <LinearGradient
                     colors={[colors.neonPurple, colors.mutedLavender]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
-                    style={[buttonStyles, styles.gradient]}
+                    style={[styles.surface, styles[size], styles.gradient]}
                 >
                     {content}
                 </LinearGradient>
-            </TouchableOpacity>
-        );
-    }
-
-    return (
-        <TouchableOpacity
-            style={buttonStyles}
-            onPress={onPress}
-            disabled={disabled || loading}
-            activeOpacity={0.7}
-        >
-            {content}
+            ) : (
+                <View
+                    style={[
+                        styles.surface,
+                        styles[size],
+                        isOutlined && styles.outlined,
+                        !isPrimary && !isOutlined && styles.secondary,
+                        disabled && styles.disabled,
+                    ]}
+                >
+                    {content}
+                </View>
+            )}
         </TouchableOpacity>
     );
 }
 
 const styles = StyleSheet.create({
-    base: {
+    touchable: {
+        alignSelf: 'flex-start',
+    },
+    fullWidth: {
+        alignSelf: 'stretch',
+    },
+    surface: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',

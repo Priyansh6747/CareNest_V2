@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { colors, typography, spacing, glassmorphism } from '../theme';
 
 export default function Card({
@@ -14,7 +14,7 @@ export default function Card({
 
     return (
         <Wrapper
-            style={[styles.card, style]}
+            style={[styles.card, Platform.OS === 'web' && styles.cardWeb, style]}
             onPress={onPress}
             activeOpacity={0.7}
         >
@@ -30,6 +30,12 @@ const styles = StyleSheet.create({
     card: {
         ...glassmorphism.card,
         padding: spacing.md,
+    },
+    cardWeb: {
+        // Subtle lift on hover makes tiles feel clickable in a browser.
+        transitionProperty: 'transform, box-shadow',
+        transitionDuration: '150ms',
+        cursor: 'auto',
     },
     iconWrapper: {
         alignSelf: 'center',

@@ -1,0 +1,56 @@
+[project]
+name = "carenest-backend"
+version = "2.0.0"
+description = "CareNest maternal health API - FastAPI backend with RAG chat, nutrition analysis and symptom tracking"
+readme = "../README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "pydantic>=2.7.0",
+    "python-dotenv>=1.0.0",
+
+    # Firebase / Firestore
+    "firebase-admin>=6.5.0",
+    "google-cloud-firestore>=2.16.0",
+
+    # Data processing
+    "numpy>=1.26.0",
+    "pandas>=2.2.0",
+    "python-dateutil>=2.9.0",
+
+    # Vector search (Memory module - SRS)
+    "faiss-cpu>=1.8.0",
+
+    # LLM provider
+    "groq>=0.13.0",
+
+    # HTTP
+    "requests>=2.32.0",
+]
+
+[project.optional-dependencies]
+# Chronos-Bolt time-series forecasting for the Insights engine.
+# Without this extra the engine falls back to SimpleForecaster.
+# Install with: uv sync --extra forecasting
+forecasting = [
+    "autogluon.timeseries>=1.0.0",
+    "chronos-forecasting>=2.0.0",
+    "torch>=2.0.0",
+    "transformers>=4.30.0",
+]
+
+# Medical PDF parsing + NER. The parser router is currently disabled in
+# main.py, so these are only needed if you re-enable it.
+# Install with: uv sync --extra parser
+parser = [
+    "pdfplumber>=0.10.0",
+    "pymupdf>=1.23.0",
+    "spacy>=3.6.0",
+    "scispacy>=0.5.3",
+]
+
+[tool.uv]
+# Run from the backend/ directory; the app is imported as a plain source tree
+# (Core.*, routers.*) rather than an installed package.
+package = false

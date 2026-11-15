@@ -1,7 +1,8 @@
 import { Stack } from 'expo-router';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { UserProvider, useUser } from '../hooks/auth_context';
 import Loader from '../components/Loader'
-import { Text, View } from "react-native";
+import useResponsive from '../hooks/useResponsive';
 
 function RootLayoutContent() {
     const {
@@ -12,20 +13,27 @@ function RootLayoutContent() {
         shouldShowSignin
     } = useUser();
 
+    const { isDesktop } = useResponsive();
+
     if (isLoading) {
         return <Loader />
     }
+
+    // On desktop browsers a centered card reads better than a full-screen page.
+    const modalOptions = isDesktop
+        ? { presentation: 'transparentModal', animation: 'fade', contentStyle: { backgroundColor: 'transparent' } }
+        : { presentation: 'modal' };
 
     return (
         <Stack screenOptions={{ headerShown: false }}>
             <Stack.Protected guard={canAccessTabs}>
                 <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="chat" options={{ presentation: 'modal' }} />
-                <Stack.Screen name="symptom-log" options={{ presentation: 'modal' }} />
-                <Stack.Screen name="symptom-report" options={{ presentation: 'modal' }} />
-                <Stack.Screen name="meal-log" options={{ presentation: 'modal' }} />
-                <Stack.Screen name="water-log" options={{ presentation: 'modal' }} />
-                <Stack.Screen name="hospitals" options={{ presentation: 'modal' }} />
+                <Stack.Screen name="chat" options={modalOptions} />
+                <Stack.Screen name="symptom-log" options={modalOptions} />
+                <Stack.Screen name="symptom-report" options={modalOptions} />
+                <Stack.Screen name="meal-log" options={modalOptions} />
+                <Stack.Screen name="water-log" options={modalOptions} />
+                <Stack.Screen name="hospitals" options={modalOptions} />
             </Stack.Protected>
             <Stack.Protected guard={canAccessVerifyEmail}>
                 <Stack.Screen name="VerifyEmail" />
@@ -42,8 +50,10 @@ function RootLayoutContent() {
 
 export default function RootLayout() {
     return (
-        <UserProvider>
-            <RootLayoutContent />
-        </UserProvider>
+        <SafeAreaProvider>
+            <UserProvider>
+                <RootLayoutContent />
+            </UserProvider>
+        </SafeAreaProvider>
     );
 }

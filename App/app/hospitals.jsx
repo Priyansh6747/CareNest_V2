@@ -5,7 +5,6 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    SafeAreaView,
     StatusBar,
     Linking,
     Platform,
@@ -13,6 +12,7 @@ import {
     RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Dropdown } from 'react-native-element-dropdown';
 import { useRouter } from 'expo-router';
@@ -20,6 +20,7 @@ import { useRouter } from 'expo-router';
 import useLocation from '../hooks/useLocation';
 import Card from '../components/Card';
 import Button from '../components/Button';
+import useResponsive from '../hooks/useResponsive';
 import { colors, gradients, typography, spacing, borderRadius, shadows, glassmorphism } from '../theme';
 import { HospitalAPI } from '../services/apiService';
 
@@ -39,6 +40,7 @@ const RADIUS_OPTIONS = [
 ];
 
 export default function Hospitals() {
+    const { maxContentWidth } = useResponsive();
     const router = useRouter();
     const { location, loading: locationLoading, error: locationError, getLocation, clearError } = useLocation();
 
@@ -223,7 +225,7 @@ export default function Hospitals() {
                 {/* Hospital List */}
                 <ScrollView
                     style={styles.scrollView}
-                    contentContainerStyle={styles.scrollContent}
+                    contentContainerStyle={[styles.scrollContent, maxContentWidth ? { maxWidth: maxContentWidth, alignSelf: 'center', width: '100%' } : null]}
                     showsVerticalScrollIndicator={false}
                     refreshControl={
                         <RefreshControl

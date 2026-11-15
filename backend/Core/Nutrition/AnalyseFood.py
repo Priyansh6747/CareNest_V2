@@ -36,27 +36,58 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Configure Gemini API
+# Configure Groq API
 try:
-    from google import genai
+    from groq import Groq
+    from Core.llm_models import (
+        EXTRACTION_MODEL,
+        DEFAULT_REASONING_EFFORT,
+        EXTRACTION_MAX_COMPLETION_TOKENS,
+        supports_reasoning_effort,
+    )
 
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("GROQ_API_KEY")
 
     if api_key:
-        client = genai.Client(api_key=api_key)
-        GEMINI_MODEL_NAME = "gemini-2.5-flash"
-        GEMINI_AVAILABLE = True
+        client = Groq(api_key=api_key)
+        GROQ_MODEL_NAME = EXTRACTION_MODEL
+        GROQ_AVAILABLE = True
     else:
-        logger.warning("GEMINI_API_KEY not found - using fallback extraction")
+        logger.warning("GROQ_API_KEY not found - using fallback extraction")
         client = None
-        GEMINI_MODEL_NAME = None
-        GEMINI_AVAILABLE = False
+        GROQ_MODEL_NAME = None
+        GROQ_AVAILABLE = False
 
 except ImportError:
-    logger.warning("google-genai not installed - using fallback extraction")
+    logger.warning("groq not installed - using fallback extraction")
     client = None
-    GEMINI_MODEL_NAME = None
-    GEMINI_AVAILABLE = False
+    GROQ_MODEL_NAME = None
+    GROQ_AVAILABLE = False
+
+
+def _chat(
+    prompt: str,
+    system_prompt: Optional[str] = None,
+    max_tokens: int = EXTRACTION_MAX_COMPLETION_TOKENS,
+) -> str:
+    """Single Groq completion helper returning raw text."""
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({"role": "user", "content": prompt})
+
+    kwargs = {
+        "model": GROQ_MODEL_NAME,
+        "messages": messages,
+        "temperature": 0.2,
+        # Reasoning models spend budget before emitting content.
+        "max_completion_tokens": max_tokens,
+    }
+    if supports_reasoning_effort(GROQ_MODEL_NAME):
+        kwargs["reasoning_effort"] = DEFAULT_REASONING_EFFORT
+
+    response = client.chat.completions.create(**kwargs)
+    return (response.choices[0].message.content or "").strip()
 
 
 # ============================================================================
@@ -143,9 +174,9 @@ def get_ingredients(
     max_retries: int = 2
 ) -> IngredientList:
     """
-    Extract ingredients from food name/description using Gemini.
+    Extract ingredients from food name/description using Groq.
     """
-    if not GEMINI_AVAILABLE or client is None:
+    if not GROQ_AVAILABLE or client is None:
         return _create_fallback_ingredients(name, amount, unit)
 
     unit_display = {
@@ -181,11 +212,11 @@ Return ONLY the JSON array, nothing else:"""
         try:
             logger.info(f"Extracting ingredients for '{name}' (attempt {attempt + 1})")
 
-            response = client.models.generate_content(
-                model=GEMINI_MODEL_NAME,
-                contents=prompt
+            response_text = _chat(
+                prompt,
+                system_prompt="You are a food composition specialist. Return ONLY valid JSON, no extra text.",
+                max_tokens=1024,
             )
-            response_text = response.text.strip()
 
             # Robust JSON extraction
             ingredients_data = extract_json_from_text(response_text)
@@ -232,7 +263,7 @@ Return ONLY the JSON array, nothing else:"""
 
 
 def _create_fallback_ingredients(name: str, amount: float, unit: str) -> IngredientList:
-    """Create fallback when Gemini extraction fails."""
+    """Create fallback when Groq extraction fails."""
     return IngredientList(
         name=name,
         list=[Ingredient(name=name, amnt=amount, unit=unit)],
@@ -428,10 +459,10 @@ def adjust_nutrients_with_ai(
     description: Optional[str] = None
 ) -> List[NutrientData]:
     """
-    Use Gemini to validate and adjust nutrient values based on food context.
+    Use Groq to validate and adjust nutrient values based on food context.
     """
-    if not GEMINI_AVAILABLE or client is None:
-        logger.info("Gemini not available, skipping adjustment")
+    if not GROQ_AVAILABLE or client is None:
+        logger.info("Groq not available, skipping adjustment")
         return nutrients
 
     if not nutrients:
@@ -470,11 +501,11 @@ Return ONLY the JSON array:"""
     try:
         logger.info("Requesting AI nutrient adjustment...")
 
-        response = client.models.generate_content(
-            model=GEMINI_MODEL_NAME,
-            contents=prompt
+        response_text = _chat(
+            prompt,
+            system_prompt="You are a nutrition expert. Return ONLY valid JSON, no extra text.",
+            max_tokens=800,
         )
-        response_text = response.text.strip()
 
         # Robust JSON extraction
         adjusted_data = extract_json_from_text(response_text)

@@ -5,18 +5,18 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    SafeAreaView,
     StatusBar,
     ActivityIndicator,
-    Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { useUser } from '../hooks/auth_context';
 import Card from '../components/Card';
 import Input from '../components/Input';
+import useResponsive from '../hooks/useResponsive';
 import { colors, gradients, typography, spacing, borderRadius, shadows } from '../theme';
 import { MealPlannerAPI, UserAPI, InsightsAPI } from '../services/apiService';
 
@@ -49,6 +49,7 @@ const MEAL_ICONS = {
 };
 
 export default function DietPlanner() {
+    const { maxContentWidth } = useResponsive();
     const router = useRouter();
     const { user } = useUser();
 
@@ -406,7 +407,7 @@ export default function DietPlanner() {
             <SafeAreaView style={styles.safeArea}>
                 <ScrollView
                     style={styles.scrollView}
-                    contentContainerStyle={styles.scrollContent}
+                    contentContainerStyle={[styles.scrollContent, maxContentWidth ? { maxWidth: maxContentWidth, alignSelf: 'center', width: '100%' } : null]}
                     showsVerticalScrollIndicator={false}
                 >
                     {/* Header */}

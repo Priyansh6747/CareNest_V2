@@ -5,26 +5,28 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    SafeAreaView,
     StatusBar,
     Modal,
     TextInput,
-    Alert,
     Pressable,
     ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { showAlert } from '../utils/alert';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { useUser } from '../hooks/auth_context';
 import Card from '../components/Card';
+import useResponsive from '../hooks/useResponsive';
 import { colors, gradients, typography, spacing, borderRadius, shadows } from '../theme';
 import { SymptomsAPI, MemoryAPI } from '../services/apiService';
 
 const SEVERITY_LEVELS = [1, 2, 3, 4, 5];
 
 export default function SymptomReport() {
+    const { maxContentWidth } = useResponsive();
     const router = useRouter();
     const { user } = useUser();
 
@@ -72,7 +74,7 @@ export default function SymptomReport() {
     };
 
     const handleDeleteSymptom = (symptomId) => {
-        Alert.alert(
+        showAlert(
             "Delete Log",
             "Are you sure you want to delete this symptom log?",
             [
@@ -89,7 +91,7 @@ export default function SymptomReport() {
                             const newFreq = await SymptomsAPI.getAllFrequencies(userId, 30);
                             setFrequencies(newFreq || []);
                         } catch (err) {
-                            Alert.alert('Error', 'Failed to delete symptom');
+                            showAlert('Error', 'Failed to delete symptom');
                         }
                     }
                 }
@@ -111,9 +113,9 @@ export default function SymptomReport() {
             
             // Reload data
             loadData();
-            Alert.alert('Success', 'Symptom updated successfully');
+            showAlert('Success', 'Symptom updated successfully');
         } catch (err) {
-            Alert.alert('Error', 'Failed to update symptom');
+            showAlert('Error', 'Failed to update symptom');
         } finally {
             setSaving(false);
         }
@@ -161,7 +163,7 @@ export default function SymptomReport() {
             <SafeAreaView style={styles.safeArea}>
                 <ScrollView
                     style={styles.scrollView}
-                    contentContainerStyle={styles.scrollContent}
+                    contentContainerStyle={[styles.scrollContent, maxContentWidth ? { maxWidth: maxContentWidth, alignSelf: 'center', width: '100%' } : null]}
                     showsVerticalScrollIndicator={false}
                 >
                     {/* Header */}

@@ -1,4 +1,8 @@
 .venv
+venv/
 .idea
-/serviceAccountKey.json
+__pycache__/
+*.pyc
 /.env
+*.json
+!Core/Memory/SRS/data/**/metadata.json

@@ -1,9 +1,20 @@
+import os
+from pathlib import Path
+
 import firebase_admin
 from firebase_admin import credentials, firestore
 
+BACKEND_DIR = Path(__file__).resolve().parent
+
 # Firebase
-cred = credentials.Certificate("serviceAccountKey.json")
-firebase_admin.initialize_app(cred)
+CREDENTIALS_PATH = os.getenv(
+    "FIREBASE_CREDENTIALS",
+    str(BACKEND_DIR / "care-45426-firebase-adminsdk-fbsvc-3c8cacde10.json"),
+)
+
+if not firebase_admin._apps:
+    cred = credentials.Certificate(CREDENTIALS_PATH)
+    firebase_admin.initialize_app(cred)
 
 # Firestore client
 firestoreDB = firestore.client()

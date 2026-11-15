@@ -5,18 +5,20 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    SafeAreaView,
     StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import Card from '../components/Card';
+import useResponsive from '../hooks/useResponsive';
 import { colors, gradients, typography, spacing, borderRadius, shadows } from '../theme';
 import Vaccines from '../constants/Vaccines';
 
 export default function VaccTracker() {
+    const { maxContentWidth } = useResponsive();
     const router = useRouter();
     
     // State to track checked vaccines
@@ -88,7 +90,7 @@ export default function VaccTracker() {
             <SafeAreaView style={styles.safeArea}>
                 <ScrollView
                     style={styles.scrollView}
-                    contentContainerStyle={styles.scrollContent}
+                    contentContainerStyle={[styles.scrollContent, maxContentWidth ? { maxWidth: maxContentWidth, alignSelf: 'center', width: '100%' } : null]}
                     showsVerticalScrollIndicator={false}
                 >
                     {/* Header */}

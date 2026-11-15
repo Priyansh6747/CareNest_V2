@@ -5,26 +5,29 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    SafeAreaView,
     StatusBar,
-    Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useUser } from '../../hooks/auth_context';
+import useResponsive from '../../hooks/useResponsive';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
+import { showAlert } from '../../utils/alert';
 import { colors, gradients, typography, spacing, borderRadius, shadows, glassmorphism } from '../../theme';
 
 export default function Profile() {
     const { user, logout, isEmailVerified } = useUser();
+    const insets = useSafeAreaInsets();
+    const { maxContentWidth, pagePadding } = useResponsive();
 
     const displayName = user?.displayName || 'User';
     const email = user?.email || '';
 
     const handleLogout = () => {
-        Alert.alert(
+        showAlert(
             'Logout',
             'Are you sure you want to logout?',
             [
@@ -37,12 +40,20 @@ export default function Profile() {
     return (
         <LinearGradient colors={gradients.background} style={styles.container}>
             <StatusBar barStyle="dark-content" />
-            <SafeAreaView style={styles.safeArea}>
-                <ScrollView
-                    style={styles.scrollView}
-                    contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={false}
-                >
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    {
+                        paddingTop: insets.top + spacing.md,
+                        paddingBottom: insets.bottom + 120,
+                        paddingHorizontal: pagePadding,
+                        alignItems: 'center',
+                    },
+                ]}
+                showsVerticalScrollIndicator={false}
+            >
+                <View style={[styles.inner, maxContentWidth ? { maxWidth: maxContentWidth } : null]}>
                     {/* Header */}
                     <View style={styles.header}>
                         <Text style={styles.title}>Profile</Text>
@@ -113,15 +124,10 @@ export default function Profile() {
                             variant="outlined"
                             icon={<Ionicons name="log-out-outline" size={20} color={colors.neonPurple} />}
                         />
-                    </View>
-
-                    {/* App Info */}
+                    </View>                    {/* App Info */}
                     <Text style={styles.appInfo}>CareNest v1.0.0</Text>
-
-                    {/* Spacer for tab bar */}
-                    <View style={{ height: 100 }} />
-                </ScrollView>
-            </SafeAreaView>
+                </View>
+            </ScrollView>
         </LinearGradient>
     );
 }
@@ -130,18 +136,18 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    safeArea: {
-        flex: 1,
-    },
     scrollView: {
         flex: 1,
+        width: '100%',
     },
     scrollContent: {
-        padding: spacing.lg,
+        flexGrow: 1,
+    },
+    inner: {
+        width: '100%',
     },
     header: {
         marginBottom: spacing.lg,
-        marginTop: spacing.md,
     },
     title: {
         ...typography.h1,

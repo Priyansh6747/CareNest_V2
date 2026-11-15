@@ -4,7 +4,7 @@ ChatEngine.py - RAG Chat Orchestrator
 Combines:
 - Context Pyramid (5-layer user context)
 - SRS (Smart Retrieval System for knowledge)
-- LLM Inference (Groq/Gemini)
+- LLM Inference (Groq)
 
 Manages Layer 4 (message history) by saving chat messages.
 """
@@ -19,9 +19,7 @@ from Core.Memory.SRS import get_retrieval_chain
 from Core.Memory.ContextPyramid import PyramidManager
 
 from .InferenceProvider import (
-    InferenceProvider,
     InferenceConfig,
-    Provider,
     get_inference_provider,
 )
 
@@ -60,7 +58,6 @@ class ChatResponse:
     """Response from the chat engine."""
     message: str
     sources: List[Source]
-    provider: str
     model: str
     context_used: bool
     retrieval_time_ms: float
@@ -73,7 +70,6 @@ class ChatResponse:
                 {"book": s.book, "preview": s.text_preview[:100], "score": s.score}
                 for s in self.sources
             ],
-            "provider": self.provider,
             "model": self.model,
             "context_used": self.context_used,
             "retrieval_time_ms": round(self.retrieval_time_ms, 2),
@@ -115,7 +111,7 @@ class ChatEngine:
     1. Get user context from Context Pyramid (all 5 layers)
     2. Retrieve relevant knowledge from SRS
     3. Build prompt with combined context
-    4. Generate response via Groq/Gemini
+    4. Generate response via Groq
     5. Save messages to Firestore (manages Layer 4)
     """
     
@@ -156,7 +152,6 @@ class ChatEngine:
     async def chat(
         self,
         message: str,
-        provider: str = "groq",
         model: Optional[str] = None,
         include_sources: bool = True,
         save_messages: bool = True,
@@ -166,7 +161,6 @@ class ChatEngine:
         
         Args:
             message: User's message
-            provider: LLM provider ("groq" or "gemini")
             model: Specific model to use (optional)
             include_sources: Include source citations
             save_messages: Save to message history
@@ -186,10 +180,7 @@ class ChatEngine:
         
         # Step 3: Generate response
         gen_start = time.time()
-        config = InferenceConfig(
-            provider=Provider(provider),
-            model=model,
-        )
+        config = InferenceConfig(model=model)
         
         response_text = self.inference.generate(
             prompt=prompt,
@@ -206,7 +197,6 @@ class ChatEngine:
         return ChatResponse(
             message=response_text,
             sources=sources if include_sources else [],
-            provider=provider,
             model=config.get_model(),
             context_used=bool(context),
             retrieval_time_ms=retrieval_time,
@@ -216,7 +206,6 @@ class ChatEngine:
     async def chat_stream(
         self,
         message: str,
-        provider: str = "groq",
         model: Optional[str] = None,
         save_messages: bool = True,
     ) -> AsyncGenerator[str, None]:
@@ -225,7 +214,6 @@ class ChatEngine:
         
         Args:
             message: User's message
-            provider: LLM provider
             model: Specific model
             save_messages: Save to history
             
@@ -236,10 +224,7 @@ class ChatEngine:
         context, _ = await self._get_combined_context(message)
         prompt = self._build_prompt(message, context)
         
-        config = InferenceConfig(
-            provider=Provider(provider),
-            model=model,
-        )
+        config = InferenceConfig(model=model)
         
         # Save user message
         if save_messages:
@@ -413,9 +398,8 @@ Please provide a helpful response based on the context above."""
 async def chat(
     user_id: str,
     message: str,
-    provider: str = "groq",
     **kwargs
 ) -> ChatResponse:
     """Quick chat function."""
     engine = ChatEngine(user_id)
-    return await engine.chat(message, provider=provider, **kwargs)
+    return await engine.chat(message, **kwargs)
